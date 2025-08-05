@@ -81,3 +81,28 @@ kali-vagrant-vm/
 ├── config/                  # Configuration files
 │   ├── ZscalerRootCertificate-2048-SHA256.crt
 ```
+
+## Troubleshooting
+
+### SSL Error: Unable to Get Local Issuer Certificate
+
+This issue is likely caused by your company providing custom SSL certificates, i.e. doing an inspection of all SSL, e.g.
+using Zscaler. In doing so, they likely have deployed a custom root cert. You can validate that by going to Chrome or
+Firefox for an HTTPS site. Go into the information for that and look at who issued it.
+
+To resolve the issue, you will have to get that root cert and make it trusted by Vagrant.
+
+1. Locate the `cacert.pem` file used by Vagrant:
+
+   ```bash
+   # Mac
+   /opt/vagrant/embedded/
+
+   # Windows
+   /vagrant/embedded/
+   ```
+
+2. Download your company's root certificate (e.g., through Chrome or Firefox)
+
+3. Append the content (including the `-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----` lines) into the
+   `cacert.pem` file.
