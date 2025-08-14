@@ -3,8 +3,8 @@
 
 # Configuration variables - can be overridden by environment variables
 VM_NAME = ENV['VM_NAME'] || 'kali-security-vm'
-VM_MEMORY = ENV['VM_MEMORY'] || '8192' # 8GB RAM
-VM_CPUS = ENV['VM_CPUS'] || '8'
+VM_MEMORY = ENV['VM_MEMORY'] || '4096' # 4GB RAM
+VM_CPUS = ENV['VM_CPUS'] || '4'
 VM_GUI = ENV['VM_GUI'] || 'false'
 
 # User configuration
