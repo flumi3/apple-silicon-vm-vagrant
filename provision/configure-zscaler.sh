@@ -5,7 +5,7 @@ set -e
 #
 # IMPORTANT: This script assumes that the Zscaler root certificate is already downloaded to /tmp/ZscalerRootCertificate-2048-SHA256.crt
 # If you are using Vagrant, this is done automatically through the Vagrantfile.
-# If you are running this script manually, you have to place the certificate in /tmp.
+# If you are running this script manually, you have to place the certificate into the /tmp directory of the target machine.
 # In case you do not have internet access, you can transfer the file using a Python HTTP server:
 # 1. On your host machine, navigate to the directory containing the certificate:
 #    cd /path/to/certificate

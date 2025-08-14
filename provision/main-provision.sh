@@ -111,17 +111,17 @@ apt-get install -y \
     zaproxy
 
 # Install Go (for modern security tools)
-echo "=== Installing Go ==="
-if [ ! -d "/usr/local/go" ]; then
-    GO_VERSION="1.21.6"
-    wget -q "https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz" -O /tmp/go.tar.gz
-    tar -C /usr/local -xzf /tmp/go.tar.gz
-    echo "export PATH=\$PATH:/usr/local/go/bin" >> /etc/environment
-    echo "export GOPATH=/opt/go" >> /etc/environment
-    mkdir -p /opt/go
-    chown vagrant:vagrant /opt/go
-    rm /tmp/go.tar.gz
-fi
+# echo "=== Installing Go ==="
+# if [ ! -d "/usr/local/go" ]; then
+#     GO_VERSION="1.21.6"
+#     wget -q "https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz" -O /tmp/go.tar.gz
+#     tar -C /usr/local -xzf /tmp/go.tar.gz
+#     echo "export PATH=\$PATH:/usr/local/go/bin" >> /etc/environment
+#     echo "export GOPATH=/opt/go" >> /etc/environment
+#     mkdir -p /opt/go
+#     chown vagrant:vagrant /opt/go
+#     rm /tmp/go.tar.gz
+# fi
 
 # Download common wordlists
 echo "=== Setting up Wordlists ==="
@@ -134,15 +134,5 @@ if [ ! -d "/opt/wordlists/SecLists" ]; then
 fi
 
 chown -R vagrant:vagrant /opt/wordlists
-
-# Configure Firefox if GUI is enabled
-if [ -n "$DISPLAY" ] || [ "$VM_GUI" = "true" ]; then
-    echo "=== Configuring Firefox ==="
-    apt-get install -y firefox-esr
-    
-    # Create Firefox profile directory
-    mkdir -p /home/vagrant/.mozilla/firefox
-    chown -R vagrant:vagrant /home/vagrant/.mozilla
-fi
 
 echo "=== System Configuration Complete ==="
