@@ -84,11 +84,12 @@ kali-vagrant-vm/
 
 ## Troubleshooting
 
-### SSL Error: Unable to Get Local Issuer Certificate
+### SSL Error: Unable to Get Local Issuer Certificate (Zscaler)
 
-This issue is likely caused by your company providing custom SSL certificates, i.e. doing an inspection of all SSL, e.g.
-using Zscaler. In doing so, they likely have deployed a custom root cert. You can validate that by going to Chrome or
-Firefox for an HTTPS site. Go into the information for that and look at who issued it.
+This issue is likely caused by your company providing custom SSL certificates, i.e. the company performing an inspection
+of all SSL traffic (e.g. using Zscaler). For doing so, they likely have deployed a custom root certificate. You can
+validate that by going to Chrome or Firefox for an HTTPS site. Go into the information for that and look at who issued
+it.
 
 To resolve the issue, you will have to get that root cert and make it trusted by Vagrant.
 
