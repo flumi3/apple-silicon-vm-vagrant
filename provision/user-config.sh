@@ -3,17 +3,17 @@ set -e
 
 DEFAULT_USER=${1:-"vagrant"}
 
-echo "=== Starting User Configuration for user $DEFAULT_USER (running as $(whoami)) ==="
+echo "[+] Starting User Configuration for user $DEFAULT_USER (running as $(whoami))..."
 
 # Create useful directories
-echo "=== Setting up Directory Structure ==="
+echo "[+] Setting up Directory Structure..."
 mkdir -p /opt/tools
 mkdir -p /opt/wordlists
 mkdir -p /home/"$DEFAULT_USER"
 chown -R "$DEFAULT_USER":"$DEFAULT_USER" /home/"$DEFAULT_USER"
 
 # Download common wordlists
-echo "=== Setting up Wordlists ==="
+echo "[+] Setting up Wordlists..."
 if [ ! -f "/opt/wordlists/rockyou.txt" ]; then
     wget -q "https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt" -O /opt/wordlists/rockyou.txt
 fi
@@ -24,7 +24,7 @@ fi
 chown -R "$DEFAULT_USER":"$DEFAULT_USER" /opt/wordlists
 
 # Install Oh My Zsh for user
-echo "=== Installing Oh My Zsh ==="
+echo "[+] Installing Oh My Zsh..."
 USER_HOME="/home/$DEFAULT_USER"
 if [ ! -d "$USER_HOME/.oh-my-zsh" ]; then
     # Run as the target user
@@ -70,18 +70,18 @@ EOF
 fi
 
 # Configure Git for user
-echo "=== Configuring Git for User ==="
+echo "[+] Configuring Git for User..."
 sudo -u "$DEFAULT_USER" git config --global init.defaultBranch main
 sudo -u "$DEFAULT_USER" git config --global pull.rebase false
 
 # Create useful directories
-echo "=== Setting up User Directories ==="
+echo "[+] Setting up User Directories..."
 sudo -u "$DEFAULT_USER" mkdir -p "$USER_HOME/Desktop"
 sudo -u "$DEFAULT_USER" mkdir -p "$USER_HOME/Documents"
 sudo -u "$DEFAULT_USER" mkdir -p "$USER_HOME/Downloads"
 
 # Configure Vim
-echo "=== Configuring Vim ==="
+echo "[+] Configuring Vim..."
 cat > "$USER_HOME/.vimrc" << 'EOF'
 set number
 set relativenumber
@@ -108,7 +108,7 @@ set novisualbell
 EOF
 
 # Configure tmux
-echo "=== Configuring tmux ==="
+echo "[+] Configuring tmux..."
 cat > "$USER_HOME/.tmux.conf" << 'EOF'
 # Set prefix to Ctrl-a
 set -g prefix C-a
@@ -142,7 +142,7 @@ EOF
 
 # Set up desktop shortcuts if GUI is available
 if [ -n "$DISPLAY" ] || pgrep -x "Xvfb" > /dev/null 2>&1; then
-    echo "=== Setting up Desktop Environment ==="
+    echo "[+] Setting up Desktop Environment..."
     
     # Create desktop shortcuts
     sudo -u "$DEFAULT_USER" mkdir -p "$USER_HOME/Desktop"
@@ -176,7 +176,7 @@ EOF
 fi
 
 # Create useful scripts
-echo "=== Creating Utility Scripts ==="
+echo "[+] Creating Utility Scripts..."
 sudo -u "$DEFAULT_USER" mkdir -p "$USER_HOME/bin"
 
 # Quick HTTP server script
@@ -218,4 +218,4 @@ echo "export PATH=\$PATH:~/bin" >> "$USER_HOME/.bashrc"
 # Fix ownership of all user files
 chown -R "$DEFAULT_USER":"$DEFAULT_USER" "$USER_HOME"
 
-echo "=== User Configuration Complete ==="
+echo "[+] User Configuration Complete"

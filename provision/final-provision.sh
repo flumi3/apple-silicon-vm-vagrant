@@ -1,15 +1,15 @@
 #!/bin/bash
 set -e
 
-echo "=== Final System Configuration ==="
+echo "[+] Final System Configuration..."
 
 # Clean up package cache
-echo "=== Cleaning up package cache ==="
+echo "[+] Cleaning up package cache..."
 apt-get autoremove -y
 apt-get autoclean
 
 # Configure system services
-echo "=== Configuring Services ==="
+echo "[+] Configuring Services..."
 
 # Disable unnecessary services for security VM
 systemctl disable avahi-daemon || true
@@ -19,13 +19,13 @@ systemctl enable ssh
 # systemctl enable docker
 
 # Configure SSH for better security
-echo "=== Configuring SSH ==="
+echo "[+] Configuring SSH..."
 sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
 sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
 sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config
 
 # Create a simple motd
-echo "=== Creating MOTD ==="
+echo "[+] Creating MOTD..."
 cat > /etc/motd << 'EOF'
 
  ███████╗███████╗ ██████╗    ██╗   ██╗███╗   ███╗
@@ -54,13 +54,13 @@ cat > /etc/motd << 'EOF'
 EOF
 
 # Set file permissions
-echo "=== Setting File Permissions ==="
+echo "[+] Setting File Permissions..."
 chmod 755 /opt/tools
 chmod 755 /opt/wordlists
 chown -R vagrant:vagrant /opt/go 2>/dev/null || true
 
 # Configure firewall (UFW)
-echo "=== Configuring Firewall ==="
+echo "[+] Configuring Firewall..."
 ufw --force reset
 ufw default deny incoming
 ufw default allow outgoing
@@ -71,7 +71,7 @@ ufw allow 8000  # HTTP server
 ufw --force enable
 
 # Create system info script
-echo "=== Creating System Info Script ==="
+echo "[+] Creating System Info Script..."
 cat > /usr/local/bin/sysinfo << 'EOF'
 #!/bin/bash
 echo "=== Kali Linux VM System Information ==="
@@ -98,7 +98,7 @@ EOF
 chmod +x /usr/local/bin/sysinfo
 
 # Configure log rotation for security tools
-echo "=== Configuring Log Rotation ==="
+echo "[+] Configuring Log Rotation..."
 cat > /etc/logrotate.d/security-tools << 'EOF'
 /home/vagrant/projects/*.log {
     weekly
@@ -122,7 +122,7 @@ cat > /etc/logrotate.d/security-tools << 'EOF'
 EOF
 
 # Create backup script for important configurations
-echo "=== Creating Backup Script ==="
+echo "[+] Creating Backup Script..."
 cat > /usr/local/bin/backup-config << 'EOF'
 #!/bin/bash
 BACKUP_DIR="/home/vagrant/shared/backups"
@@ -149,7 +149,7 @@ chmod +x /usr/local/bin/backup-config
 # usermod -s /usr/bin/zsh vagrant
 
 # Create a quick setup verification script
-echo "=== Creating Setup Verification ==="
+echo "[+] Creating Setup Verification..."
 cat > /home/vagrant/verify-setup.sh << 'EOF'
 #!/bin/bash
 echo "=== Kali VM Setup Verification ==="
@@ -209,7 +209,7 @@ EOF
 chmod +x /home/vagrant/verify-setup.sh
 chown vagrant:vagrant /home/vagrant/verify-setup.sh
 
-echo "=== Final Configuration Complete ==="
+echo "[+] Final Configuration Complete..."
 echo "VM is ready for use!"
 echo "Run 'sysinfo' for system information"
 echo "Run '~/verify-setup.sh' to verify installation"

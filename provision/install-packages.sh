@@ -5,12 +5,12 @@ set -e
 export DEBIAN_FRONTEND=noninteractive
 
 # Update system
-echo "=== Updating System ==="
+echo "[+] Updating System..."
 apt-get update
 apt-get upgrade -y
 
 # Install essential packages
-echo "=== Installing Essential Packages ==="
+echo "[+] Installing Essential Packages..."
 apt-get install -y \
     ufw \
     curl \
@@ -38,13 +38,13 @@ pip3 config set global.cert /etc/ssl/certs/ca-certificates.crt
 npm config set -g cafile /etc/ssl/certs/ca-certificates.crt
 
 # Configure Docker
-echo "=== Configuring Docker ==="
+echo "[+] Configuring Docker..."
 usermod -aG docker vagrant
 # systemctl enable docker
 # systemctl start docker
 
 # Configure Git globally
-echo "=== Configuring Git ==="
+echo "[+] Configuring Git..."
 git config --system init.defaultBranch main
 git config --system pull.rebase false
 
@@ -70,7 +70,7 @@ git config --system pull.rebase false
 # fi
 
 # Install security tools
-echo "=== Installing Security Tools ==="
+echo "[+] Installing Security Tools..."
 install_security_tools() {
     local security_packages=(
         "nmap"
@@ -106,7 +106,7 @@ install_security_tools
 
 # Install Python security tools
 install_python_security_tools() {
-    echo "=== Installing Python Security Packages ==="
+    echo "[+] Installing Python Security Packages..."
 
     # Ensure pipx is properly configured
     pipx ensurepath

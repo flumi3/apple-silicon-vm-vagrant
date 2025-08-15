@@ -24,7 +24,7 @@ HTTPS_PROXY=${5:-""}
 ZSCALER_ROOT_CERT_NAME="ZscalerRootCertificate-2048-SHA256.crt"
 
 if [ -f "/tmp/$ZSCALER_ROOT_CERT_NAME" ]; then
-    echo "=== Configuring Zscaler Certificate ==="
+    echo "[+] Configuring Zscaler Certificate..."
     
     # Install system-wide
     cp /tmp/$ZSCALER_ROOT_CERT_NAME /usr/local/share/ca-certificates/$ZSCALER_ROOT_CERT_NAME

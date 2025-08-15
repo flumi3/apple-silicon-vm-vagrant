@@ -7,18 +7,18 @@ KEYBOARD=${2:-"de"}
 LOCALE=${3:-"en_US.UTF-8"}
 
 
-echo "=== Starting System Configuration ==="
+echo "[+] Starting System Configuration..."
 echo "Timezone: $TIMEZONE"
 echo "Keyboard: $KEYBOARD" 
 echo "Locale: $LOCALE"
 
 # Configure timezone
-echo "=== Configuring Timezone ==="
+echo "[+] Configuring Timezone..."
 timedatectl set-timezone "$TIMEZONE"
 echo "Timezone set to: $(timedatectl show --property=Timezone --value)"
 
 # Configure locale
-echo "=== Configuring Locale ==="
+echo "[+] Configuring Locale..."
 locale-gen "$LOCALE"
 localectl set-locale LANG="$LOCALE"
 
