@@ -151,8 +151,8 @@ echo "Backup created: $BACKUP_DIR/vm-config-$DATE.tar.gz"
 EOF
 chmod +x /usr/local/bin/backup-config
 
-# Set correct shell for vagrant user
-usermod -s /usr/bin/zsh vagrant
+# # Set correct shell for vagrant user
+# usermod -s /usr/bin/zsh vagrant
 
 # Create a quick setup verification script
 echo "=== Creating Setup Verification ==="

@@ -63,9 +63,10 @@ Vagrant.configure("2") do |config|
     inline: "rm -f /tmp/ZscalerRootCertificate-2048-SHA256.crt",
     run: "always"
 
-  config.vm.provision "file", source: "./config/ZscalerRootCertificate-2048-SHA256.crt",
-                      destination: "/tmp/ZscalerRootCertificate-2048-SHA256.crt",
-                      run: "always"
+  config.vm.provision "file",
+    source: "./config/ZscalerRootCertificate-2048-SHA256.crt", 
+    destination: "/tmp/ZscalerRootCertificate-2048-SHA256.crt", 
+    run: "always" if File.exist?("./config/ZscalerRootCertificate-2048-SHA256.crt")
 
   # Zscaler configuration
   config.vm.provision "shell",

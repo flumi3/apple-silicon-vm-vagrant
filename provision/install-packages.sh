@@ -48,25 +48,25 @@ git config --system init.defaultBranch main
 git config --system pull.rebase false
 
 # Install Oh My Zsh for root (will be installed for the user in user-provision.sh)
-echo "=== Installing Oh My Zsh for root ==="
-if [ ! -d "/root/.oh-my-zsh" ]; then
-    sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-    # Don't change root shell to avoid Vagrant SSH issues
-    # chsh -s "$(which zsh)" root
-fi
+# echo "=== Installing Oh My Zsh for root ==="
+# if [ ! -d "/root/.oh-my-zsh" ]; then
+#     sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+#     # Don't change root shell to avoid Vagrant SSH issues
+#     # chsh -s "$(which zsh)" root
+# fi
 
-# Install Go (for modern security tools)
-echo "=== Installing Go ==="
-if [ ! -d "/usr/local/go" ]; then
-    GO_VERSION="1.21.6"
-    wget -q "https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz" -O /tmp/go.tar.gz
-    tar -C /usr/local -xzf /tmp/go.tar.gz
-    echo "export PATH=\$PATH:/usr/local/go/bin" >> /etc/environment
-    echo "export GOPATH=/opt/go" >> /etc/environment
-    mkdir -p /opt/go
-    chown vagrant:vagrant /opt/go
-    rm /tmp/go.tar.gz
-fi
+# # Install Go (for modern security tools)
+# echo "=== Installing Go ==="
+# if [ ! -d "/usr/local/go" ]; then
+#     GO_VERSION="1.21.6"
+#     wget -q "https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz" -O /tmp/go.tar.gz
+#     tar -C /usr/local -xzf /tmp/go.tar.gz
+#     echo "export PATH=\$PATH:/usr/local/go/bin" >> /etc/environment
+#     echo "export GOPATH=/opt/go" >> /etc/environment
+#     mkdir -p /opt/go
+#     chown vagrant:vagrant /opt/go
+#     rm /tmp/go.tar.gz
+# fi
 
 # Install security tools
 echo "=== Installing Security Tools ==="
@@ -109,38 +109,40 @@ install_python_security_tools() {
 
     # Ensure pipx is properly configured
     pipx ensurepath
+    pipx ensurepath --global # optional to allow pipx actions with --global argument
+    pipx completions
 
     # Install packages that work well with pipx (command-line tools)
     pipx install impacket
-    pipx install bloodhound.py
-    pipx install crackmapexec
+    pipx install bloodhound
+    # pipx install crackmapexec
     pipx install droopescan
     pipx install wpscan
     pipx install subfinder
+    pipx install scapy
 
     # Install libraries with pip3 (these are typically used as libraries, not CLI tools)
     pip3 install --user \
         requests \
         beautifulsoup4 \
-        scapy \
         pwntools
 }
-install_python_security_tools
+# install_python_security_tools
 
-# Install Go security tools
-echo "=== Installing Go Security Tools ==="
-export PATH=$PATH:/usr/local/go/bin
-export GOPATH=/opt/go
+# # Install Go security tools
+# echo "=== Installing Go Security Tools ==="
+# export PATH=$PATH:/usr/local/go/bin
+# export GOPATH=/opt/go
 
-if [ -d "/usr/local/go" ]; then
-    go install github.com/ffuf/ffuf@latest
-    go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-    go install github.com/projectdiscovery/httpx/cmd/httpx@latest
-    go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
-    go install github.com/tomnomnom/assetfinder@latest
-    go install github.com/tomnomnom/waybackurls@latest
+# if [ -d "/usr/local/go" ]; then
+#     go install github.com/ffuf/ffuf@latest
+#     go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+#     go install github.com/projectdiscovery/httpx/cmd/httpx@latest
+#     go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+#     go install github.com/tomnomnom/assetfinder@latest
+#     go install github.com/tomnomnom/waybackurls@latest
     
-    # Add Go bin to PATH in shell configs
-    echo 'export PATH=$PATH:/opt/go/bin' >> ~/.zshrc
-    echo 'export PATH=$PATH:/opt/go/bin' >> ~/.bashrc
-fi
+#     # Add Go bin to PATH in shell configs
+#     echo 'export PATH=$PATH:/opt/go/bin' >> ~/.zshrc
+#     echo 'export PATH=$PATH:/opt/go/bin' >> ~/.bashrc
+# fi
