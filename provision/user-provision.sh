@@ -1,9 +1,29 @@
 #!/bin/bash
 set -e
 
+DEFAULT_USER=${1:-"vagrant"}
+
 echo "=== Starting User Configuration (running as $(whoami)) ==="
 
-# Install Oh My Zsh for vagrant user
+# Create useful directories
+echo "=== Setting up Directory Structure ==="
+mkdir -p /opt/tools
+mkdir -p /opt/wordlists
+mkdir -p /home/"$DEFAULT_USER"
+chown -R "$DEFAULT_USER":"$DEFAULT_USER" /home/"$DEFAULT_USER"
+
+# Download common wordlists
+echo "=== Setting up Wordlists ==="
+if [ ! -f "/opt/wordlists/rockyou.txt" ]; then
+    wget -q "https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt" -O /opt/wordlists/rockyou.txt
+fi
+
+if [ ! -d "/opt/wordlists/SecLists" ]; then
+    git clone https://github.com/danielmiessler/SecLists.git /opt/wordlists/SecLists
+fi
+chown -R "$DEFAULT_USER":"$DEFAULT_USER" /opt/wordlists
+
+# Install Oh My Zsh for user
 echo "=== Installing Oh My Zsh ==="
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
     sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
@@ -33,7 +53,6 @@ alias nmap-quick='nmap -T4 -F'
 alias nmap-full='nmap -T4 -A -v'
 alias gobuster-dir='gobuster dir -w /opt/wordlists/SecLists/Discovery/Web-Content/directory-list-2.3-medium.txt'
 alias http-server='python3 -m http.server'
-alias metasploit='msfconsole'
 
 # Network aliases
 alias myip='curl -s ifconfig.me'
@@ -45,62 +64,19 @@ alias wordlists='cd /opt/wordlists'
 alias projects='cd ~/projects'
 alias shared='cd ~/shared'
 
-# Git shortcuts
-alias gs='git status'
-alias ga='git add'
-alias gc='git commit'
-alias gp='git push'
-alias gl='git log --oneline'
-
 EOF
 fi
 
 # Configure Git for user
 echo "=== Configuring Git for User ==="
-git config --global user.name "Kali User"
-git config --global user.email "user@kali.local"
 git config --global init.defaultBranch main
 git config --global pull.rebase false
 
 # Create useful directories
 echo "=== Setting up User Directories ==="
 mkdir -p ~/Desktop
-mkdir -p ~/Documents/Notes
-mkdir -p ~/Documents/Scripts
-mkdir -p ~/Downloads/Tools
-mkdir -p ~/.config
-
-# Install Python packages for security testing
-echo "=== Installing Python Security Packages ==="
-pip3 install --user \
-    requests \
-    beautifulsoup4 \
-    scapy \
-    pwntools \
-    impacket \
-    bloodhound \
-    crackmapexec \
-    droopescan \
-    wpscan \
-    subfinder
-
-# Install Go security tools
-echo "=== Installing Go Security Tools ==="
-export PATH=$PATH:/usr/local/go/bin
-export GOPATH=/opt/go
-
-if [ -d "/usr/local/go" ]; then
-    go install github.com/ffuf/ffuf@latest
-    go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-    go install github.com/projectdiscovery/httpx/cmd/httpx@latest
-    go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
-    go install github.com/tomnomnom/assetfinder@latest
-    go install github.com/tomnomnom/waybackurls@latest
-    
-    # Add Go bin to PATH in shell configs
-    echo 'export PATH=$PATH:/opt/go/bin' >> ~/.zshrc
-    echo 'export PATH=$PATH:/opt/go/bin' >> ~/.bashrc
-fi
+mkdir -p ~/Documents
+mkdir -p ~/Downloads
 
 # Configure Vim
 echo "=== Configuring Vim ==="
@@ -234,13 +210,7 @@ EOF
 chmod +x ~/bin/revshell
 
 # Add ~/bin to PATH
-echo 'export PATH=$PATH:~/bin' >> ~/.zshrc
-echo 'export PATH=$PATH:~/bin' >> ~/.bashrc
-
-# Source user config if it exists
-if [ -f "/tmp/user-config.sh" ]; then
-    echo "=== Running Custom User Configuration ==="
-    source /tmp/user-config.sh
-fi
+echo "export PATH=$PATH:~/bin" >> ~/.zshrc
+echo "export PATH=$PATH:~/bin" >> ~/.bashrc
 
 echo "=== User Configuration Complete ==="

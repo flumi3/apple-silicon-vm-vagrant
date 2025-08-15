@@ -22,6 +22,7 @@ apt-get install -y \
     unzip \
     build-essential \
     python3-pip \
+    pipx \
     nodejs \
     npm \
     docker.io \
@@ -67,7 +68,6 @@ if [ ! -d "/usr/local/go" ]; then
     rm /tmp/go.tar.gz
 fi
 
-
 # Install security tools
 echo "=== Installing Security Tools ==="
 install_security_tools() {
@@ -102,3 +102,42 @@ install_security_tools() {
     done
 }
 install_security_tools
+
+# Install Python packages for security testing
+echo "=== Installing Python Security Packages ==="
+
+# Ensure pipx is properly configured
+pipx ensurepath
+
+# Install packages that work well with pipx (command-line tools)
+pipx install impacket
+pipx install bloodhound.py
+pipx install crackmapexec
+pipx install droopescan
+pipx install wpscan
+pipx install subfinder
+
+# Install libraries with pip3 (these are typically used as libraries, not CLI tools)
+pip3 install --user \
+    requests \
+    beautifulsoup4 \
+    scapy \
+    pwntools
+
+# Install Go security tools
+echo "=== Installing Go Security Tools ==="
+export PATH=$PATH:/usr/local/go/bin
+export GOPATH=/opt/go
+
+if [ -d "/usr/local/go" ]; then
+    go install github.com/ffuf/ffuf@latest
+    go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+    go install github.com/projectdiscovery/httpx/cmd/httpx@latest
+    go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+    go install github.com/tomnomnom/assetfinder@latest
+    go install github.com/tomnomnom/waybackurls@latest
+    
+    # Add Go bin to PATH in shell configs
+    echo 'export PATH=$PATH:/opt/go/bin' >> ~/.zshrc
+    echo 'export PATH=$PATH:/opt/go/bin' >> ~/.bashrc
+fi
