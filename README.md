@@ -1,6 +1,6 @@
-# Kali Linux Security VM with Vagrant
+# Security VM with Vagrant
 
-A fully automated, reproducible Kali Linux VM setup for security research, penetration testing, and training (TryHackMe,
+A fully automated, reproducible Debian VM setup for security research, penetration testing, and training (TryHackMe,
 HackTheBox, etc.).
 
 ## Features
@@ -12,7 +12,7 @@ HackTheBox, etc.).
 - **User-friendly Setup**: Oh My Zsh, custom aliases, useful scripts
 - **Persistent Storage**: Shared folders for projects and data
 
-## Quick Start
+## Getting Started
 
 1. **Install Prerequisites**:
 
@@ -23,7 +23,8 @@ HackTheBox, etc.).
    sudo apt install virtualbox vagrant
 
    # On macOS with Homebrew:
-   brew install virtualbox vagrant
+   brew install vagrant
+   vagrant plugin install vagrant_utm
    ```
 
 2. **Clone and Configure**:

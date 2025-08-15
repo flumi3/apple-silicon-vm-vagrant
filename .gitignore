@@ -1,3 +1,5 @@
 .env
 .vagrant/
 ZscalerRootCertificate-2048-SHA256.crt
+/projects
+/shared
