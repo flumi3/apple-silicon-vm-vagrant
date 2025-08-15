@@ -42,6 +42,9 @@ HackTheBox, etc.).
 
    ```bash
    vagrant up
+
+   # or this, if you want a log file
+   vagrant up 2>&1 | tee vagrant-up-$(date +%Y%m%d-%H%M%S).log
    ```
 
 4. **Connect**:

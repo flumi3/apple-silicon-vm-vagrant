@@ -2,6 +2,7 @@
 set -e
 
 DEFAULT_USER=${1:-"vagrant"}
+USER_HOME="/home/$DEFAULT_USER"
 
 echo "[+] Starting User Configuration for user $DEFAULT_USER (running as $(whoami))..."
 
@@ -25,7 +26,6 @@ chown -R "$DEFAULT_USER":"$DEFAULT_USER" /opt/wordlists
 
 # Install Oh My Zsh for user
 echo "[+] Installing Oh My Zsh..."
-USER_HOME="/home/$DEFAULT_USER"
 if [ ! -d "$USER_HOME/.oh-my-zsh" ]; then
     # Run as the target user
     sudo -u "$DEFAULT_USER" sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended

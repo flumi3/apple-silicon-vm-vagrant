@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+DEFAULT_USER=${1:-"vagrant"}
+
 echo "[+] Final System Configuration..."
 
 # Clean up package cache
@@ -74,7 +76,13 @@ ufw --force enable
 echo "[+] Creating System Info Script..."
 cat > /usr/local/bin/sysinfo << 'EOF'
 #!/bin/bash
-echo "=== Kali Linux VM System Information ==="
+
+echo "#######################################"
+echo "#        VM System Information        #"
+echo "#######################################"
+echo ""
+
+echo "=== System Information ==="
 echo "Hostname: $(hostname)"
 echo "OS: $(lsb_release -d | cut -f2)"
 echo "Kernel: $(uname -r)"
@@ -83,17 +91,20 @@ echo "Memory: $(free -h | awk '/^Mem:/ {print $3 "/" $2}')"
 echo "Disk: $(df -h / | awk 'NR==2 {print $3 "/" $2 " (" $5 " used)"}')"
 echo "IP Address: $(ip route get 1 | awk '{print $NF;exit}')"
 echo ""
+
 echo "=== Installed Security Tools ==="
 echo "Nmap: $(nmap --version | head -1)"
 echo "Metasploit: $(msfconsole -v 2>/dev/null | head -1 || echo 'Not available')"
 echo "Burp Suite: $(which burpsuite >/dev/null && echo 'Installed' || echo 'Not found')"
 echo "Gobuster: $(gobuster version 2>/dev/null || echo 'Not available')"
 echo ""
+
 echo "=== Custom Aliases Available ==="
 echo "- serve [port]     # Start HTTP server"
 echo "- revshell [ip] [port] # Generate reverse shells"
 echo "- gobuster-dir [url] # Quick directory busting"
 echo "- nmap-quick/nmap-full # Quick nmap scans"
+echo ""
 EOF
 chmod +x /usr/local/bin/sysinfo
 
@@ -152,7 +163,10 @@ chmod +x /usr/local/bin/backup-config
 echo "[+] Creating Setup Verification..."
 cat > /home/vagrant/verify-setup.sh << 'EOF'
 #!/bin/bash
-echo "=== Kali VM Setup Verification ==="
+
+echo "#######################################"
+echo "#        VM Setup Verification        #"
+echo "#######################################"
 echo ""
 
 # Check timezone
@@ -165,7 +179,7 @@ echo "Keyboard: $(localectl status | grep "X11 Layout" | cut -d: -f2 | xargs)"
 echo "Locale: $(localectl status | grep "System Locale" | cut -d= -f2)"
 
 # Check Zscaler cert
-if [ -f "/usr/local/share/ca-certificates/zscaler-root.crt" ]; then
+if [ -f "/usr/local/share/ca-certificates/ZscalerRootCertificate-2048-SHA256.crt" ]; then
     echo "Zscaler cert: Installed"
 else
     echo "Zscaler cert: Not installed"
@@ -209,8 +223,17 @@ EOF
 chmod +x /home/vagrant/verify-setup.sh
 chown vagrant:vagrant /home/vagrant/verify-setup.sh
 
-# TODO: run sysinfo and verify-setup as part of the provision script
-echo "[+] Final Configuration Complete..."
+# Run verification script
+echo "[+] Verifying setup..."
+echo ""
+sudo -u "$DEFAULT_USER" /home/vagrant/verify-setup.sh
+echo ""
+
+# Run sysinfo
+/usr/local/bin/sysinfo
+echo ""
+
+echo "[+] Final configuration complete..."
 echo "VM is ready for use!"
 echo "Run 'sysinfo' for system information"
 echo "Run '~/verify-setup.sh' to verify installation"
