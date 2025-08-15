@@ -3,7 +3,7 @@ set -e
 
 DEFAULT_USER=${1:-"vagrant"}
 
-echo "=== Starting User Configuration (running as $(whoami)) ==="
+echo "=== Starting User Configuration for user $DEFAULT_USER (running as $(whoami)) ==="
 
 # Create useful directories
 echo "=== Setting up Directory Structure ==="
@@ -25,18 +25,20 @@ chown -R "$DEFAULT_USER":"$DEFAULT_USER" /opt/wordlists
 
 # Install Oh My Zsh for user
 echo "=== Installing Oh My Zsh ==="
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
-    sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+USER_HOME="/home/$DEFAULT_USER"
+if [ ! -d "$USER_HOME/.oh-my-zsh" ]; then
+    # Run as the target user
+    sudo -u "$DEFAULT_USER" sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
     
     # Install popular plugins
-    git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+    sudo -u "$DEFAULT_USER" git clone https://github.com/zsh-users/zsh-autosuggestions "$USER_HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+    sudo -u "$DEFAULT_USER" git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$USER_HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
     
     # Configure .zshrc
-    sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting docker docker-compose golang npm python pip)/' ~/.zshrc
+    sudo -u "$DEFAULT_USER" sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting docker docker-compose golang npm python pip)/' "$USER_HOME/.zshrc"
     
     # Add custom aliases
-    cat >> ~/.zshrc << 'EOF'
+    cat >> "$USER_HOME/.zshrc" << 'EOF'
 
 # Custom aliases for security testing
 alias ll='ls -alF'
@@ -69,18 +71,18 @@ fi
 
 # Configure Git for user
 echo "=== Configuring Git for User ==="
-git config --global init.defaultBranch main
-git config --global pull.rebase false
+sudo -u "$DEFAULT_USER" git config --global init.defaultBranch main
+sudo -u "$DEFAULT_USER" git config --global pull.rebase false
 
 # Create useful directories
 echo "=== Setting up User Directories ==="
-mkdir -p ~/Desktop
-mkdir -p ~/Documents
-mkdir -p ~/Downloads
+sudo -u "$DEFAULT_USER" mkdir -p "$USER_HOME/Desktop"
+sudo -u "$DEFAULT_USER" mkdir -p "$USER_HOME/Documents"
+sudo -u "$DEFAULT_USER" mkdir -p "$USER_HOME/Downloads"
 
 # Configure Vim
 echo "=== Configuring Vim ==="
-cat > ~/.vimrc << 'EOF'
+cat > "$USER_HOME/.vimrc" << 'EOF'
 set number
 set relativenumber
 set autoindent
@@ -107,7 +109,7 @@ EOF
 
 # Configure tmux
 echo "=== Configuring tmux ==="
-cat > ~/.tmux.conf << 'EOF'
+cat > "$USER_HOME/.tmux.conf" << 'EOF'
 # Set prefix to Ctrl-a
 set -g prefix C-a
 unbind C-b
@@ -143,10 +145,10 @@ if [ -n "$DISPLAY" ] || pgrep -x "Xvfb" > /dev/null 2>&1; then
     echo "=== Setting up Desktop Environment ==="
     
     # Create desktop shortcuts
-    mkdir -p ~/Desktop
+    sudo -u "$DEFAULT_USER" mkdir -p "$USER_HOME/Desktop"
     
     # Burp Suite shortcut
-    cat > ~/Desktop/burpsuite.desktop << 'EOF'
+    cat > "$USER_HOME/Desktop/burpsuite.desktop" << 'EOF'
 [Desktop Entry]
 Name=Burp Suite
 Comment=Web Security Testing
@@ -158,7 +160,7 @@ Categories=Network;Security;
 EOF
     
     # Terminal shortcut
-    cat > ~/Desktop/terminal.desktop << 'EOF'
+    cat > "$USER_HOME/Desktop/terminal.desktop" << 'EOF'
 [Desktop Entry]
 Name=Terminal
 Comment=Terminal Emulator
@@ -170,25 +172,25 @@ Categories=System;TerminalEmulator;
 EOF
     
     # Make desktop files executable
-    chmod +x ~/Desktop/*.desktop
+    chmod +x "$USER_HOME/Desktop"/*.desktop
 fi
 
 # Create useful scripts
 echo "=== Creating Utility Scripts ==="
-mkdir -p ~/bin
+sudo -u "$DEFAULT_USER" mkdir -p "$USER_HOME/bin"
 
 # Quick HTTP server script
-cat > ~/bin/serve << 'EOF'
+cat > "$USER_HOME/bin/serve" << 'EOF'
 #!/bin/bash
 PORT=${1:-8000}
 echo "Starting HTTP server on port $PORT"
 echo "Access at: http://localhost:$PORT"
 python3 -m http.server $PORT
 EOF
-chmod +x ~/bin/serve
+chmod +x "$USER_HOME/bin/serve"
 
 # Quick reverse shell generator
-cat > ~/bin/revshell << 'EOF'
+cat > "$USER_HOME/bin/revshell" << 'EOF'
 #!/bin/bash
 IP=${1:-10.0.2.2}
 PORT=${2:-4444}
@@ -207,10 +209,13 @@ echo ""
 echo "Listener command:"
 echo "nc -lvp $PORT"
 EOF
-chmod +x ~/bin/revshell
+chmod +x "$USER_HOME/bin/revshell"
 
 # Add ~/bin to PATH
-echo "export PATH=$PATH:~/bin" >> ~/.zshrc
-echo "export PATH=$PATH:~/bin" >> ~/.bashrc
+echo "export PATH=\$PATH:~/bin" >> "$USER_HOME/.zshrc"
+echo "export PATH=\$PATH:~/bin" >> "$USER_HOME/.bashrc"
+
+# Fix ownership of all user files
+chown -R "$DEFAULT_USER":"$DEFAULT_USER" "$USER_HOME"
 
 echo "=== User Configuration Complete ==="
