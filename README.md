@@ -35,8 +35,11 @@ HackTheBox, etc.).
 
    # Copy your Zscaler certificate (optional)
    mkdir -p config
-   cp /path/to/your/zscaler-cert.crt config/
+   cp /path/to/your/ZscalerRootCertificate-2048-SHA256.crt config/
    ```
+
+   > :exclamation: It is important to name the certificate file exactly as `ZscalerRootCertificate-2048-SHA256.crt` for
+   > the provisioning scripts to work correctly.
 
 3. **Start the VM**:
 
@@ -56,33 +59,6 @@ HackTheBox, etc.).
    # Or use the GUI (if enabled)
    # VirtualBox GUI will open automatically
    ```
-
-## Vagrant Usage
-
-### Provisioning
-
-You can run specific provisioners:
-
-```bash
-# Run only the packages provisioner
-vagrant provision --provision-with install-packages
-
-# Run multiple specific provisioners
-vagrant provision --provision-with configure-zscaler,install-packages
-
-# Run only user configuration
-vagrant provision --provision-with user-config
-```
-
-You can also use provisioner types to run all provisioners of a certain type:
-
-```bash
-# Run all shell provisioners
-vagrant provision --provision-with shell
-
-# Run all file provisioners
-vagrant provision --provision-with file
-```
 
 ## Configuration
 
@@ -111,6 +87,33 @@ kali-vagrant-vm/
 │   └── final-provision.sh   # Final configuration
 ├── config/                  # Configuration files
 │   ├── ZscalerRootCertificate-2048-SHA256.crt
+```
+
+## Vagrant Usage
+
+### Provisioning
+
+You can run specific provisioners:
+
+```bash
+# Run only the packages provisioner
+vagrant provision --provision-with install-packages
+
+# Run multiple specific provisioners
+vagrant provision --provision-with configure-zscaler,install-packages
+
+# Run only user configuration
+vagrant provision --provision-with user-config
+```
+
+You can also use provisioner types to run all provisioners of a certain type:
+
+```bash
+# Run all shell provisioners
+vagrant provision --provision-with shell
+
+# Run all file provisioners
+vagrant provision --provision-with file
 ```
 
 ## Troubleshooting
