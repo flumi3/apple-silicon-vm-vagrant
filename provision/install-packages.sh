@@ -70,8 +70,8 @@ git config --system pull.rebase false
 # fi
 
 # Install security tools
-echo "[+] Installing Security Tools..."
 install_security_tools() {
+    echo "[+] Installing Security Tools..."
     local security_packages=(
         "nmap"
         "masscan" 
@@ -96,9 +96,9 @@ install_security_tools() {
     # Install available packages (some might not be available on all distributions)
     for package in "${security_packages[@]}"; do
         if apt-cache show "$package" >/dev/null 2>&1; then
-            apt-get install -y "$package" || echo "WARN: Failed to install $package"
+            apt-get install -y "$package" || echo "[!] WARN: Failed to install $package"
         else
-            echo "WARN: Package $package not available in repositories"
+            echo "[!] WARN: Package $package not available in repositories"
         fi
     done
 }
@@ -109,27 +109,41 @@ install_python_security_tools() {
     echo "[+] Installing Python Security Packages..."
 
     # Ensure pipx is properly configured
-    pipx ensurepath
-    pipx ensurepath --global # optional to allow pipx actions with --global argument
-    pipx completions
+    pipx ensurepath || echo "[!] WARN: Failed to configure pipx ensurepath"
+    sudo pipx ensurepath --global || echo "[!] WARN: Failed to configure pipx ensurepath --global" # optional to allow pipx actions with --global argument
+    pipx completions || echo "[!] WARN: Failed to configure pipx completions"
 
     # Install packages that work well with pipx (command-line tools)
-    pipx install impacket
-    pipx install bloodhound
-    # pipx install crackmapexec
-    pipx install droopescan
-    pipx install wpscan
-    pipx install subfinder
-    pipx install scapy
+    local pipx_packages=(
+        "impacket"
+        "bloodhound"
+        "droopescan"
+        "wpscan"
+        "subfinder"
+        "crackmapexec"
+        "scapy"
+    )
+    
+    for package in "${pipx_packages[@]}"; do
+        echo "Installing $package with pipx..."
+        pipx install "$package" || echo "WARN: Failed to install $package with pipx"
+    done
 
+    # TODO: Change this in case it makes problems
     # Install libraries with pip3 (these are typically used as libraries, not CLI tools)
-    pip3 install --user \
-        requests \
-        beautifulsoup4 \
-        pwntools
+    # Using --break-system-packages since this is a controlled VM environment
+    local pip3_packages=(
+        "requests"
+        "beautifulsoup4"
+        "pwntools"
+    )
+    
+    for package in "${pip3_packages[@]}"; do
+        echo "Installing $package with pip3..."
+        pip3 install --user --break-system-packages "$package" || echo "WARN: Failed to install $package with pip3"
+    done
 }
-# TODO: enable me
-# install_python_security_tools
+install_python_security_tools
 
 # # Install Go security tools
 # echo "=== Installing Go Security Tools ==="
@@ -148,3 +162,5 @@ install_python_security_tools() {
 #     echo 'export PATH=$PATH:/opt/go/bin' >> ~/.zshrc
 #     echo 'export PATH=$PATH:/opt/go/bin' >> ~/.bashrc
 # fi
+
+echo "[+] Installation complete"

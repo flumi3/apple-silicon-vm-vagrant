@@ -209,6 +209,7 @@ EOF
 chmod +x /home/vagrant/verify-setup.sh
 chown vagrant:vagrant /home/vagrant/verify-setup.sh
 
+# TODO: run sysinfo and verify-setup as part of the provision script
 echo "[+] Final Configuration Complete..."
 echo "VM is ready for use!"
 echo "Run 'sysinfo' for system information"
