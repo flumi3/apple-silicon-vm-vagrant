@@ -103,26 +103,29 @@ install_security_tools() {
 }
 install_security_tools
 
-# Install Python packages for security testing
-echo "=== Installing Python Security Packages ==="
+# Install Python security tools
+install_python_security_tools() {
+    echo "=== Installing Python Security Packages ==="
 
-# Ensure pipx is properly configured
-pipx ensurepath
+    # Ensure pipx is properly configured
+    pipx ensurepath
 
-# Install packages that work well with pipx (command-line tools)
-pipx install impacket
-pipx install bloodhound.py
-pipx install crackmapexec
-pipx install droopescan
-pipx install wpscan
-pipx install subfinder
+    # Install packages that work well with pipx (command-line tools)
+    pipx install impacket
+    pipx install bloodhound.py
+    pipx install crackmapexec
+    pipx install droopescan
+    pipx install wpscan
+    pipx install subfinder
 
-# Install libraries with pip3 (these are typically used as libraries, not CLI tools)
-pip3 install --user \
-    requests \
-    beautifulsoup4 \
-    scapy \
-    pwntools
+    # Install libraries with pip3 (these are typically used as libraries, not CLI tools)
+    pip3 install --user \
+        requests \
+        beautifulsoup4 \
+        scapy \
+        pwntools
+}
+install_python_security_tools
 
 # Install Go security tools
 echo "=== Installing Go Security Tools ==="
