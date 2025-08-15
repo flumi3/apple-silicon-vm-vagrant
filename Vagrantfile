@@ -59,7 +59,7 @@ Vagrant.configure("2") do |config|
   
   # Copy configuration files
   # Remove existing certificate file to avoid permissions issues on re-provisioning
-  config.vm.provision "shell", 
+  config.vm.provision "shell",
     inline: "rm -f /tmp/ZscalerRootCertificate-2048-SHA256.crt",
     run: "always"
 
@@ -70,27 +70,33 @@ Vagrant.configure("2") do |config|
 
   # Zscaler configuration
   config.vm.provision "shell",
+    name: "configure-zscaler",
     path: "./provision/configure-zscaler.sh",
     args: [HTTP_PROXY, HTTPS_PROXY],
     privileged: true
 
   # Install packages
   config.vm.provision "shell",
+    name: "install-packages",
     path: "./provision/install-packages.sh",
     privileged: true
 
+  # System configuration
   config.vm.provision "shell",
+    name: "system-config",
     path: "./provision/system-config.sh",
     args: [USER_TIMEZONE, USER_KEYBOARD, USER_LOCALE],
     privileged: true
   
-  # # User-specific provisioning (runs as vagrant user)
-  # config.vm.provision "shell", 
-  #   path: "./provision/user-config.sh",
-  #   privileged: false
-  
+  # User-specific provisioning (runs as vagrant user)
+  config.vm.provision "shell",
+    name: "user-config",
+    path: "./provision/user-config.sh",
+    privileged: true
+
   # # Final system configuration
-  # config.vm.provision "shell", 
+  # config.vm.provision "shell",
+  #   name: "final-provision",
   #   path: "./provision/final-provision.sh",
   #   privileged: true
 end

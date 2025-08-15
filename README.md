@@ -54,6 +54,33 @@ HackTheBox, etc.).
    # VirtualBox GUI will open automatically
    ```
 
+## Vagrant Usage
+
+### Provisioning
+
+You can run specific provisioners:
+
+```bash
+# Run only the packages provisioner
+vagrant provision --provision-with install-packages
+
+# Run multiple specific provisioners
+vagrant provision --provision-with configure-zscaler,install-packages
+
+# Run only user configuration
+vagrant provision --provision-with user-config
+```
+
+You can also use provisioner types to run all provisioners of a certain type:
+
+```bash
+# Run all shell provisioners
+vagrant provision --provision-with shell
+
+# Run all file provisioners
+vagrant provision --provision-with file
+```
+
 ## Configuration
 
 ### Environment Variables
