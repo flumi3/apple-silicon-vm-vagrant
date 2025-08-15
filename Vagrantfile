@@ -1,8 +1,16 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+# Load environment variables from .env file if it exists
+begin
+  require 'dotenv'
+  Dotenv.load
+rescue LoadError
+  # dotenv gem not available, continue without it
+end
+
 # Configuration variables - can be overridden by environment variables
-VM_NAME = ENV['VM_NAME'] || 'kali-security-vm'
+VM_NAME = ENV['VM_NAME'] || 'security-vm'
 VM_MEMORY = ENV['VM_MEMORY'] || '4096' # 4GB RAM
 VM_CPUS = ENV['VM_CPUS'] || '4'
 VM_GUI = ENV['VM_GUI'] || 'false'
@@ -17,8 +25,7 @@ HTTP_PROXY = ENV['HTTP_PROXY'] || ''
 HTTPS_PROXY = ENV['HTTPS_PROXY'] || ''
 
 Vagrant.configure("2") do |config|
-  # Use official Kali Linux box
-  config.vm.box = "kalilinux/rolling"
+  config.vm.box = "utm/bookworm"
   config.vm.box_check_update = true
   
   # VM configuration
@@ -32,31 +39,33 @@ Vagrant.configure("2") do |config|
   config.vm.network "forwarded_port", guest: 8000, host: 8000  # HTTP server
   
   # Shared folders
-  config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+  config.vm.synced_folder ".", "/vagrant"
   config.vm.synced_folder "./shared", "/home/vagrant/shared", create: true
   config.vm.synced_folder "./projects", "/home/vagrant/projects", create: true
-  
+
   # VirtualBox specific settings
-  config.vm.provider "virtualbox" do |vb|
+  config.vm.provider "utm" do |vb|
     vb.name = VM_NAME
     vb.memory = VM_MEMORY
     vb.cpus = VM_CPUS
-    vb.gui = VM_GUI == 'true'
+    # vb.gui = VM_GUI == 'true'  # doesn't work with UTM as a provider
     
-    # Performance optimizations
-    vb.customize ["modifyvm", :id, "--vram", "128"]
-    vb.customize ["modifyvm", :id, "--accelerate3d", "on"]
-    vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
-    vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
+    # Performance optimizations (doesn't work with UTM as a provider)
+    # vb.customize ["modifyvm", :id, "--vram", "128"]
+    # vb.customize ["modifyvm", :id, "--accelerate3d", "on"]
+    # vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+    # vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
   end
   
   # Copy configuration files
-  config.vm.provision "file", source: "./config/ZscalerRootCertificate-2048-SHA256.crt", 
-                      destination: "/tmp/ZscalerRootCertificate-2048-SHA256.crt", 
-                      run: "always" if File.exist?("./config/ZscalerRootCertificate-2048-SHA256.crt")
+  # Remove existing certificate file to avoid permissions issues on re-provisioning
+  config.vm.provision "shell", 
+    inline: "rm -f /tmp/ZscalerRootCertificate-2048-SHA256.crt",
+    run: "always"
 
-  # config.vm.provision "file", source: "./config/user-config.sh", 
-  #                     destination: "/tmp/user-config.sh"
+  config.vm.provision "file", source: "./config/ZscalerRootCertificate-2048-SHA256.crt",
+                      destination: "/tmp/ZscalerRootCertificate-2048-SHA256.crt",
+                      run: "always"
 
   # Zscaler configuration
   config.vm.provision "shell",
@@ -64,15 +73,19 @@ Vagrant.configure("2") do |config|
     args: [HTTP_PROXY, HTTPS_PROXY],
     privileged: true
 
-  # Main provisioning script
-  config.vm.provision "shell", 
-    path: "./provision/main-provision.sh",
+  # Install packages
+  config.vm.provision "shell",
+    path: "./provision/install-packages.sh",
+    privileged: true
+
+  config.vm.provision "shell",
+    path: "./provision/system-config.sh",
     args: [USER_TIMEZONE, USER_KEYBOARD, USER_LOCALE],
     privileged: true
   
   # # User-specific provisioning (runs as vagrant user)
   # config.vm.provision "shell", 
-  #   path: "./provision/user-provision.sh",
+  #   path: "./provision/user-config.sh",
   #   privileged: false
   
   # # Final system configuration
