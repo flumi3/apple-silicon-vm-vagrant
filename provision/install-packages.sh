@@ -1,0 +1,104 @@
+#!/bin/bash
+set -e
+
+# Set DEBIAN_FRONTEND to noninteractive to prevent any prompts
+export DEBIAN_FRONTEND=noninteractive
+
+# Update system
+echo "=== Updating System ==="
+apt-get update
+apt-get upgrade -y
+
+# Install essential packages
+echo "=== Installing Essential Packages ==="
+apt-get install -y \
+    curl \
+    wget \
+    git \
+    vim \
+    zsh \
+    htop \
+    tree \
+    unzip \
+    build-essential \
+    python3-pip \
+    nodejs \
+    npm \
+    docker.io \
+    docker-compose \
+    ca-certificates \
+    gnupg \
+    software-properties-common
+
+# Configure pip and npm trust store. This has to be done if using a custom certificate (e.g. Zscaler) because npm and
+# pip maintain their own certificate stores.
+pip3 config set global.cert /etc/ssl/certs/ca-certificates.crt
+npm config set -g cafile /etc/ssl/certs/ca-certificates.crt
+
+# Configure Docker
+echo "=== Configuring Docker ==="
+usermod -aG docker vagrant
+# systemctl enable docker
+# systemctl start docker
+
+# Configure Git globally
+echo "=== Configuring Git ==="
+git config --system init.defaultBranch main
+git config --system pull.rebase false
+
+# Install Oh My Zsh for root (will be installed for the user in user-provision.sh)
+echo "=== Installing Oh My Zsh for root ==="
+if [ ! -d "/root/.oh-my-zsh" ]; then
+    sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+    # Don't change root shell to avoid Vagrant SSH issues
+    # chsh -s "$(which zsh)" root
+fi
+
+# Install Go (for modern security tools)
+echo "=== Installing Go ==="
+if [ ! -d "/usr/local/go" ]; then
+    GO_VERSION="1.21.6"
+    wget -q "https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz" -O /tmp/go.tar.gz
+    tar -C /usr/local -xzf /tmp/go.tar.gz
+    echo "export PATH=\$PATH:/usr/local/go/bin" >> /etc/environment
+    echo "export GOPATH=/opt/go" >> /etc/environment
+    mkdir -p /opt/go
+    chown vagrant:vagrant /opt/go
+    rm /tmp/go.tar.gz
+fi
+
+
+# Install security tools
+echo "=== Installing Security Tools ==="
+install_security_tools() {
+    local security_packages=(
+        "nmap"
+        "masscan" 
+        "gobuster"
+        "dirbuster"
+        "nikto"
+        "sqlmap"
+        "hashcat"
+        "john"
+        "hydra"
+        "aircrack-ng"
+        "wireshark"
+        "tcpdump"
+        "netcat-traditional"
+        "socat"
+        "proxychains4"
+        "tor"
+        "burpsuite"
+        "zaproxy"
+    )
+    
+    # Install available packages (some might not be available on all distributions)
+    for package in "${security_packages[@]}"; do
+        if apt-cache show "$package" >/dev/null 2>&1; then
+            apt-get install -y "$package" || log "WARN" "Failed to install $package"
+        else
+            log "WARN" "Package $package not available in repositories"
+        fi
+    done
+}
+install_security_tools

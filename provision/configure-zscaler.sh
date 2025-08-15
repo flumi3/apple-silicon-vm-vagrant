@@ -41,12 +41,6 @@ if [ -f "/tmp/$ZSCALER_ROOT_CERT_NAME" ]; then
     # Python configuration
     echo "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" >> /etc/environment
     echo "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> /etc/environment
-
-    # Configure pip globally
-    pip3 config set global.cert /etc/ssl/certs/ca-certificates.crt
-
-    # Configure npm globally
-    npm config set -g cafile /etc/ssl/certs/ca-certificates.crt
     
     # Set Node.js certificate environment
     echo "NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt" >> /etc/environment

@@ -22,7 +22,7 @@ systemctl disable avahi-daemon || true
 
 # Enable useful services
 systemctl enable ssh
-systemctl enable docker
+# systemctl enable docker
 
 # Configure SSH for better security
 echo "=== Configuring SSH ==="
@@ -54,7 +54,7 @@ cat > /etc/motd << 'EOF'
  - serve [port]     # Start HTTP server
  - revshell [ip] [port] # Generate reverse shells
  - gobuster-dir [url] # Quick directory busting
- 
+
  Happy Hacking!
 
 EOF
@@ -182,9 +182,9 @@ echo ""
 echo "=== Tool Check ==="
 for tool in nmap gobuster burpsuite msfconsole docker go python3 pip3; do
     if command -v $tool >/dev/null 2>&1; then
-        echo "✓ $tool: Available"
+        echo "$tool: Available"
     else
-        echo "✗ $tool: Not found"
+        echo "$tool: Not found"
     fi
 done
 
@@ -193,9 +193,9 @@ echo ""
 echo "=== Custom Commands ==="
 for cmd in serve revshell sysinfo backup-config; do
     if command -v $cmd >/dev/null 2>&1; then
-        echo "✓ $cmd: Available"
+        echo "$cmd: Available"
     else
-        echo "✗ $cmd: Not found"
+        echo "$cmd: Not found"
     fi
 done
 
@@ -203,9 +203,9 @@ echo ""
 echo "=== Directory Structure ==="
 for dir in /opt/tools /opt/wordlists ~/projects ~/shared; do
     if [ -d "$dir" ]; then
-        echo "✓ $dir: Exists"
+        echo "$dir: Exists"
     else
-        echo "✗ $dir: Missing"
+        echo "$dir: Missing"
     fi
 done
 
