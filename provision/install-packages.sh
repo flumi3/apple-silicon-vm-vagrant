@@ -95,9 +95,9 @@ install_security_tools() {
     # Install available packages (some might not be available on all distributions)
     for package in "${security_packages[@]}"; do
         if apt-cache show "$package" >/dev/null 2>&1; then
-            apt-get install -y "$package" || log "WARN" "Failed to install $package"
+            apt-get install -y "$package" || echo "WARN: Failed to install $package"
         else
-            log "WARN" "Package $package not available in repositories"
+            echo "WARN: Package $package not available in repositories"
         fi
     done
 }
