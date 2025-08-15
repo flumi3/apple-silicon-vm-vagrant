@@ -94,9 +94,9 @@ Vagrant.configure("2") do |config|
     path: "./provision/user-config.sh",
     privileged: true
 
-  # # Final system configuration
-  # config.vm.provision "shell",
-  #   name: "final-provision",
-  #   path: "./provision/final-provision.sh",
-  #   privileged: true
+  # Final system configuration
+  config.vm.provision "shell",
+    name: "final-provision",
+    path: "./provision/final-provision.sh",
+    privileged: true
 end

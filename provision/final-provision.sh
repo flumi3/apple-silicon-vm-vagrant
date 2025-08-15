@@ -8,16 +8,10 @@ echo "=== Cleaning up package cache ==="
 apt-get autoremove -y
 apt-get autoclean
 
-# Update locate database
-echo "=== Updating locate database ==="
-updatedb
-
 # Configure system services
 echo "=== Configuring Services ==="
 
 # Disable unnecessary services for security VM
-systemctl disable bluetooth
-systemctl disable cups
 systemctl disable avahi-daemon || true
 
 # Enable useful services

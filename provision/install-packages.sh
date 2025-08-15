@@ -12,6 +12,7 @@ apt-get upgrade -y
 # Install essential packages
 echo "=== Installing Essential Packages ==="
 apt-get install -y \
+    ufw \
     curl \
     wget \
     git \
@@ -127,6 +128,7 @@ install_python_security_tools() {
         beautifulsoup4 \
         pwntools
 }
+# TODO: enable me
 # install_python_security_tools
 
 # # Install Go security tools
