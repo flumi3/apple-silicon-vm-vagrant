@@ -43,14 +43,16 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder "./shared", "/home/vagrant/shared", create: true
   config.vm.synced_folder "./projects", "/home/vagrant/projects", create: true
 
-  # VirtualBox specific settings
-  config.vm.provider "utm" do |vb|
-    vb.name = VM_NAME
-    vb.memory = VM_MEMORY
-    vb.cpus = VM_CPUS
-    # vb.gui = VM_GUI == 'true'  # doesn't work with UTM as a provider
-    
-    # Performance optimizations (doesn't work with UTM as a provider)
+  # Provider specific settings
+  # For Mac use `config.vm.provider "utm" do |utm|`
+  # For Windows or Linux use `config.vm.provider "virtualbox" do |vb|`
+  config.vm.provider "utm" do |utm|
+    utm.name = VM_NAME
+    utm.memory = VM_MEMORY
+    utm.cpus = VM_CPUS
+
+    # Performance optimizations possible with VirtualBox
+    # vb.gui = VM_GUI == 'true'
     # vb.customize ["modifyvm", :id, "--vram", "128"]
     # vb.customize ["modifyvm", :id, "--accelerate3d", "on"]
     # vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
@@ -63,10 +65,17 @@ Vagrant.configure("2") do |config|
     inline: "rm -f /tmp/ZscalerRootCertificate-2048-SHA256.crt",
     run: "always"
 
+  # Upload Zscaler certificate
   config.vm.provision "file",
     source: "./config/ZscalerRootCertificate-2048-SHA256.crt", 
     destination: "/tmp/ZscalerRootCertificate-2048-SHA256.crt", 
     run: "always" if File.exist?("./config/ZscalerRootCertificate-2048-SHA256.crt")
+
+  # Upload Kali GPG keyring (fallback for corporate proxies blocking kali.org)
+  config.vm.provision "file",
+    source: "./config/kali-archive-keyring.gpg",
+    destination: "/tmp/kali-archive-keyring.gpg",
+    run: "always" if File.exist?("./config/kali-archive-keyring.gpg")
 
   # Zscaler configuration
   config.vm.provision "shell",

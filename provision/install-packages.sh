@@ -15,17 +15,120 @@ setup_kali_repos() {
         return 0
     fi
     
+    # Ensure gnupg and wget are available for key handling
+    echo "[+] Installing prerequisites for Kali repo setup..."
+    apt-get update
+    apt-get install -y gnupg wget
+    
     # Download and install Kali GPG key
     echo "[+] Adding Kali GPG key..."
-    wget -q -O /tmp/kali-archive-key.asc https://archive.kali.org/archive-key.asc
-    gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg /tmp/kali-archive-key.asc
-    rm /tmp/kali-archive-key.asc
+    mkdir -p /usr/share/keyrings
     
-    # Create Kali sources file (deb822 format)
-    echo "[+] Adding Kali repository..."
-    cat > /etc/apt/sources.list.d/kali.sources << 'EOF'
+    # Export CA bundle for current session (in case /etc/environment isn't loaded yet)
+    export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+    export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+    
+    # Install curl if not present
+    apt-get install -y curl >/dev/null 2>&1 || true
+    
+    key_downloaded=false
+    
+    # Try downloading from official Kali server first
+    echo "[+] Downloading Kali GPG key from archive.kali.org..."
+    if curl --cacert /etc/ssl/certs/ca-certificates.crt -fsSL -A "Mozilla/5.0" -o /tmp/kali-archive-key.asc https://archive.kali.org/archive-key.asc 2>/dev/null && [ -s /tmp/kali-archive-key.asc ]; then
+        gpg --dearmor --yes -o /usr/share/keyrings/kali-archive-keyring.gpg /tmp/kali-archive-key.asc
+        rm -f /tmp/kali-archive-key.asc
+        key_downloaded=true
+    else
+        echo "    [!] Official server blocked, trying mirrors..."
+    fi
+    
+    # Try downloading keyring package from mirrors
+    if [ "$key_downloaded" = false ]; then
+        for url in "https://ftp.halifax.rwth-aachen.de/kali/pool/main/k/kali-archive-keyring/kali-archive-keyring_2024.1_all.deb" \
+                   "https://mirror.karneval.cz/pub/linux/kali/pool/main/k/kali-archive-keyring/kali-archive-keyring_2024.1_all.deb"; do
+            if curl --cacert /etc/ssl/certs/ca-certificates.crt -fsSL -A "Mozilla/5.0" -o /tmp/kali-keyring.deb "$url" 2>/dev/null && [ -s /tmp/kali-keyring.deb ]; then
+                dpkg-deb -x /tmp/kali-keyring.deb /tmp/kali-keyring
+                if [ -f /tmp/kali-keyring/usr/share/keyrings/kali-archive-keyring.gpg ]; then
+                    cp /tmp/kali-keyring/usr/share/keyrings/kali-archive-keyring.gpg /usr/share/keyrings/kali-archive-keyring.gpg
+                    rm -rf /tmp/kali-keyring /tmp/kali-keyring.deb
+                    echo "[+] Downloaded keyring from mirror"
+                    key_downloaded=true
+                    break
+                fi
+                rm -rf /tmp/kali-keyring /tmp/kali-keyring.deb
+            fi
+        done
+        
+        if [ "$key_downloaded" = false ]; then
+            echo "    [!] Mirror download also failed, checking for local fallback..."
+        fi
+    fi
+    
+    # FALLBACK: Use bundled keyring file if all downloads failed
+    if [ "$key_downloaded" = false ]; then
+        for keyfile in "/vagrant/config/kali-archive-keyring.gpg" "/tmp/kali-archive-keyring.gpg"; do
+            if [ -f "$keyfile" ] && [ -s "$keyfile" ]; then
+                echo "[+] Using bundled keyring fallback: $keyfile"
+                # Check if it's armored (ASCII) or binary
+                if head -1 "$keyfile" | grep -q "BEGIN PGP"; then
+                    gpg --dearmor --yes -o /usr/share/keyrings/kali-archive-keyring.gpg "$keyfile"
+                else
+                    cp "$keyfile" /usr/share/keyrings/kali-archive-keyring.gpg
+                fi
+                key_downloaded=true
+                break
+            fi
+        done
+    fi
+
+    echo "[+] Kali GPG key installed successfully"
+    
+    # Find an accessible Kali mirror
+    # Corporate proxies often block kali.org domains, so we try university mirrors first
+    echo "[+] Finding accessible Kali mirror..."
+    
+    KALI_MIRROR=""
+    declare -A MIRROR_NAMES=(
+        ["https://ftp.halifax.rwth-aachen.de/kali"]="RWTH Aachen (Germany)"
+        ["https://mirror.karneval.cz/pub/linux/kali"]="Karneval (Czech Republic)"
+        ["https://ftp.acc.umu.se/mirror/kali.org/kali"]="Umeå University (Sweden)"
+        ["http://http.kali.org/kali"]="Official Kali"
+    )
+    
+    for mirror in "https://ftp.halifax.rwth-aachen.de/kali" \
+                  "https://mirror.karneval.cz/pub/linux/kali" \
+                  "https://ftp.acc.umu.se/mirror/kali.org/kali" \
+                  "http://http.kali.org/kali"; do
+        if curl --cacert /etc/ssl/certs/ca-certificates.crt -fsSL -A "Mozilla/5.0" -o /dev/null "$mirror/dists/kali-rolling/InRelease" 2>/dev/null; then
+            KALI_MIRROR="$mirror"
+            echo "[+] Using mirror: ${MIRROR_NAMES[$mirror]} ($mirror)"
+            break
+        fi
+    done
+    
+    if [ -z "$KALI_MIRROR" ]; then
+        echo ""
+        echo "[!] ERROR: No accessible Kali mirror found"
+        echo ""
+        echo "    Your network appears to be blocking all Kali repository mirrors."
+        echo "    This is common in corporate environments with strict firewall policies."
+        echo ""
+        echo "    SOLUTIONS:"
+        echo "    1. Request your IT team to whitelist one of these domains:"
+        echo "       - ftp.halifax.rwth-aachen.de (RWTH Aachen University)"
+        echo "       - mirror.karneval.cz"
+        echo "       - ftp.acc.umu.se"
+        echo "       - http.kali.org"
+        echo ""
+        echo "    2. Or run 'vagrant up' while disconnected from corporate network"
+        echo ""
+        exit 1
+    fi
+    
+    cat > /etc/apt/sources.list.d/kali.sources << EOF
 Types: deb
-URIs: http://http.kali.org/kali
+URIs: $KALI_MIRROR
 Suites: kali-rolling
 Components: main contrib non-free non-free-firmware
 Signed-By: /usr/share/keyrings/kali-archive-keyring.gpg
@@ -91,29 +194,9 @@ echo "[+] Configuring Git..."
 git config --system init.defaultBranch main
 git config --system pull.rebase false
 
-# Install Oh My Zsh for root (will be installed for the user in user-provision.sh)
-# echo "=== Installing Oh My Zsh for root ==="
-# if [ ! -d "/root/.oh-my-zsh" ]; then
-#     sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-#     # Don't change root shell to avoid Vagrant SSH issues
-#     # chsh -s "$(which zsh)" root
-# fi
-
-# # Install Go (for modern security tools)
-# echo "=== Installing Go ==="
-# if [ ! -d "/usr/local/go" ]; then
-#     GO_VERSION="1.21.6"
-#     wget -q "https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz" -O /tmp/go.tar.gz
-#     tar -C /usr/local -xzf /tmp/go.tar.gz
-#     echo "export PATH=\$PATH:/usr/local/go/bin" >> /etc/environment
-#     echo "export GOPATH=/opt/go" >> /etc/environment
-#     mkdir -p /opt/go
-#     chown vagrant:vagrant /opt/go
-#     rm /tmp/go.tar.gz
-# fi
-
 # Install Kali security tools (via metapackage)
 # kali-tools-top10 includes: nmap, sqlmap, john, hydra, wireshark, aircrack-ng, burpsuite, etc.
+# See https://www.kali.org/tools/kali-meta/
 echo "[+] Installing Kali Security Tools (top10 metapackage)..."
 apt-get install -y kali-tools-top10 || echo "[!] WARN: Some kali-tools-top10 packages may have failed"
 
@@ -157,23 +240,5 @@ install_python_security_tools() {
     done
 }
 install_python_security_tools
-
-# # Install Go security tools
-# echo "=== Installing Go Security Tools ==="
-# export PATH=$PATH:/usr/local/go/bin
-# export GOPATH=/opt/go
-
-# if [ -d "/usr/local/go" ]; then
-#     go install github.com/ffuf/ffuf@latest
-#     go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-#     go install github.com/projectdiscovery/httpx/cmd/httpx@latest
-#     go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
-#     go install github.com/tomnomnom/assetfinder@latest
-#     go install github.com/tomnomnom/waybackurls@latest
-    
-#     # Add Go bin to PATH in shell configs
-#     echo 'export PATH=$PATH:/opt/go/bin' >> ~/.zshrc
-#     echo 'export PATH=$PATH:/opt/go/bin' >> ~/.bashrc
-# fi
 
 echo "[+] Installation complete"
