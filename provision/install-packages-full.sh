@@ -1,8 +1,21 @@
 #!/bin/bash
 set -e
 
-# Set DEBIAN_FRONTEND to noninteractive to prevent any prompts
+# =============================================================================
+# Full Package Installation (Security Toolkit)
+# =============================================================================
+# Complete provisioning (~20 minutes) with all security tools.
+# Includes: Kali tools, Developer tools, wordlists, Python security packages
+# For faster setup, use PROVISIONING_MODE=minimal
+# =============================================================================
+
 export DEBIAN_FRONTEND=noninteractive
+
+echo "=============================================="
+echo "  FULL PROVISIONING MODE"
+echo "  Installing complete security toolkit"
+echo "  This may take 20-30 minutes..."
+echo "=============================================="
 
 # Setup Kali Linux repositories with APT pinning
 # Priority 100 ensures Debian packages are preferred, Kali only used for tools not in Debian
@@ -241,4 +254,13 @@ install_python_security_tools() {
 }
 install_python_security_tools
 
-echo "[+] Installation complete"
+echo ""
+echo "=============================================="
+echo "  FULL INSTALLATION COMPLETE"
+echo ""
+echo "  Installed:"
+echo "  - Essential tools (curl, wget, git, vim, zsh, etc.)"
+echo "  - Kali security tools (kali-tools-top10)"
+echo "  - Python security packages (impacket, bloodhound, etc.)"
+echo "  - Docker and development tools"
+echo "=============================================="

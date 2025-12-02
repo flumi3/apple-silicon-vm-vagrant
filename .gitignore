@@ -1,6 +1,18 @@
+# Generated configuration
 .env
+
+# Vagrant
 .vagrant/
-ZscalerRootCertificate-2048-SHA256.crt
+
+# Corporate certificates (user-specific)
+config/*.crt
+
+# User data
 /projects
 /shared
+
+# macOS
 .DS_Store
+
+# Logs
+*.log

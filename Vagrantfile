@@ -1,6 +1,18 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+# =============================================================================
+# Kali Security VM for Apple Silicon Macs (UTM/QEMU)
+# =============================================================================
+# This Vagrantfile is designed specifically for Macs with Apple Silicon (M1/M2/M3/...).
+#
+# Quick start:
+#   1. Run ./setup.sh to configure your environment
+#   2. Run vagrant up
+#
+# For manual configuration, set environment variables or create a .env file.
+# =============================================================================
+
 # Load environment variables from .env file if it exists
 begin
   require 'dotenv'
@@ -9,101 +21,126 @@ rescue LoadError
   # dotenv gem not available, continue without it
 end
 
-# Configuration variables - can be overridden by environment variables
-VM_NAME = ENV['VM_NAME'] || 'security-vm'
-VM_MEMORY = ENV['VM_MEMORY'] || '4096' # 4GB RAM
-VM_CPUS = ENV['VM_CPUS'] || '4'
-VM_GUI = ENV['VM_GUI'] || 'false'
+# =============================================================================
+# Configuration Variables
+# =============================================================================
 
-# User configuration
+# VM Resources
+VM_NAME = ENV['VM_NAME'] || 'security-vm'
+VM_MEMORY = ENV['VM_MEMORY'] || '4096'
+VM_CPUS = ENV['VM_CPUS'] || '4'
+
+# User Preferences
 USER_TIMEZONE = ENV['USER_TIMEZONE'] || 'Europe/Berlin'
 USER_KEYBOARD = ENV['USER_KEYBOARD'] || 'de'
 USER_LOCALE = ENV['USER_LOCALE'] || 'en_US.UTF-8'
 
-# Proxy configuration
+# Provisioning Mode: 'minimal' (fast, ~5 min) or 'full' (all security tools, ~20 min)
+PROVISIONING_MODE = ENV['PROVISIONING_MODE'] || 'minimal'
+
+# Corporate Proxy Configuration (optional)
 HTTP_PROXY = ENV['HTTP_PROXY'] || ''
 HTTPS_PROXY = ENV['HTTPS_PROXY'] || ''
 
+# =============================================================================
+# Vagrant Configuration
+# =============================================================================
+
 Vagrant.configure("2") do |config|
+  # Base box: Debian Bookworm for UTM (ARM64)
   config.vm.box = "utm/bookworm"
   config.vm.box_check_update = true
-  
-  # VM configuration
   config.vm.hostname = VM_NAME
-  
-  # Network configuration
+
+  # ---------------------------------------------------------------------------
+  # Network Configuration
+  # ---------------------------------------------------------------------------
   config.vm.network "private_network", type: "dhcp"
-  # Port forwarding for common services
-  config.vm.network "forwarded_port", guest: 8080, host: 8080  # Burp/ZAP
-  config.vm.network "forwarded_port", guest: 4444, host: 4444  # Metasploit
-  config.vm.network "forwarded_port", guest: 8000, host: 8000  # HTTP server
   
-  # Shared folders
+  # Port forwarding for common security tools
+  config.vm.network "forwarded_port", guest: 8080, host: 8080  # Burp Suite / ZAP
+  config.vm.network "forwarded_port", guest: 4444, host: 4444  # Metasploit / Reverse shells
+  config.vm.network "forwarded_port", guest: 8000, host: 8000  # HTTP server
+
+  # ---------------------------------------------------------------------------
+  # Shared Folders
+  # ---------------------------------------------------------------------------
   config.vm.synced_folder ".", "/vagrant"
   config.vm.synced_folder "./shared", "/home/vagrant/shared", create: true
   config.vm.synced_folder "./projects", "/home/vagrant/projects", create: true
 
-  # Provider specific settings
-  # For Mac use `config.vm.provider "utm" do |utm|`
-  # For Windows or Linux use `config.vm.provider "virtualbox" do |vb|`
+  # ---------------------------------------------------------------------------
+  # UTM Provider Configuration (Apple Silicon)
+  # ---------------------------------------------------------------------------
   config.vm.provider "utm" do |utm|
     utm.name = VM_NAME
     utm.memory = VM_MEMORY
     utm.cpus = VM_CPUS
-
-    # Performance optimizations possible with VirtualBox
-    # vb.gui = VM_GUI == 'true'
-    # vb.customize ["modifyvm", :id, "--vram", "128"]
-    # vb.customize ["modifyvm", :id, "--accelerate3d", "on"]
-    # vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
-    # vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
   end
-  
-  # Copy configuration files
-  # Remove existing certificate file to avoid permissions issues on re-provisioning
+
+  # ---------------------------------------------------------------------------
+  # Certificate Provisioning (Auto-detect all .crt files in config/)
+  # ---------------------------------------------------------------------------
+  # Clean up any previously uploaded certificates
   config.vm.provision "shell",
-    inline: "rm -f /tmp/ZscalerRootCertificate-2048-SHA256.crt",
+    inline: "rm -f /tmp/*.crt",
     run: "always"
 
-  # Upload Zscaler certificate
-  config.vm.provision "file",
-    source: "./config/ZscalerRootCertificate-2048-SHA256.crt", 
-    destination: "/tmp/ZscalerRootCertificate-2048-SHA256.crt", 
-    run: "always" if File.exist?("./config/ZscalerRootCertificate-2048-SHA256.crt")
+  # Auto-detect and upload all .crt files from config/ directory
+  Dir.glob("./config/*.crt").each do |cert_file|
+    cert_name = File.basename(cert_file)
+    config.vm.provision "file",
+      source: cert_file,
+      destination: "/tmp/#{cert_name}",
+      run: "always"
+  end
 
   # Upload Kali GPG keyring (fallback for corporate proxies blocking kali.org)
-  config.vm.provision "file",
-    source: "./config/kali-archive-keyring.gpg",
-    destination: "/tmp/kali-archive-keyring.gpg",
-    run: "always" if File.exist?("./config/kali-archive-keyring.gpg")
+  if File.exist?("./config/kali-archive-keyring.gpg")
+    config.vm.provision "file",
+      source: "./config/kali-archive-keyring.gpg",
+      destination: "/tmp/kali-archive-keyring.gpg",
+      run: "always"
+  end
 
-  # Zscaler configuration
+  # ---------------------------------------------------------------------------
+  # Provisioning Scripts
+  # ---------------------------------------------------------------------------
+  
+  # 1. Corporate proxy and certificate configuration
   config.vm.provision "shell",
-    name: "configure-zscaler",
-    path: "./provision/configure-zscaler.sh",
+    name: "configure-proxy",
+    path: "./provision/configure-proxy.sh",
     args: [HTTP_PROXY, HTTPS_PROXY],
     privileged: true
 
-  # Install packages
-  config.vm.provision "shell",
-    name: "install-packages",
-    path: "./provision/install-packages.sh",
-    privileged: true
+  # 2. Package installation (minimal or full based on PROVISIONING_MODE)
+  if PROVISIONING_MODE == 'full'
+    config.vm.provision "shell",
+      name: "install-packages-full",
+      path: "./provision/install-packages-full.sh",
+      privileged: true
+  else
+    config.vm.provision "shell",
+      name: "install-packages-minimal",
+      path: "./provision/install-packages-minimal.sh",
+      privileged: true
+  end
 
-  # System configuration
+  # 3. System configuration (timezone, keyboard, locale)
   config.vm.provision "shell",
     name: "system-config",
     path: "./provision/system-config.sh",
     args: [USER_TIMEZONE, USER_KEYBOARD, USER_LOCALE],
     privileged: true
-  
-  # User-specific provisioning (runs as vagrant user)
+
+  # 4. User environment setup
   config.vm.provision "shell",
     name: "user-config",
     path: "./provision/user-config.sh",
     privileged: true
 
-  # Final system configuration
+  # 5. Final configuration and verification
   config.vm.provision "shell",
     name: "final-provision",
     path: "./provision/final-provision.sh",
