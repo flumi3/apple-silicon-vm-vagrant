@@ -4,6 +4,48 @@ set -e
 # Set DEBIAN_FRONTEND to noninteractive to prevent any prompts
 export DEBIAN_FRONTEND=noninteractive
 
+# Setup Kali Linux repositories with APT pinning
+# Priority 100 ensures Debian packages are preferred, Kali only used for tools not in Debian
+setup_kali_repos() {
+    echo "[+] Setting up Kali Linux repositories..."
+    
+    # Idempotency check - skip if already configured
+    if [ -f /etc/apt/sources.list.d/kali.sources ]; then
+        echo "[*] Kali repositories already configured, skipping..."
+        return 0
+    fi
+    
+    # Download and install Kali GPG key
+    echo "[+] Adding Kali GPG key..."
+    wget -q -O /tmp/kali-archive-key.asc https://archive.kali.org/archive-key.asc
+    gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg /tmp/kali-archive-key.asc
+    rm /tmp/kali-archive-key.asc
+    
+    # Create Kali sources file (deb822 format)
+    echo "[+] Adding Kali repository..."
+    cat > /etc/apt/sources.list.d/kali.sources << 'EOF'
+Types: deb
+URIs: http://http.kali.org/kali
+Suites: kali-rolling
+Components: main contrib non-free non-free-firmware
+Signed-By: /usr/share/keyrings/kali-archive-keyring.gpg
+EOF
+    
+    # Create APT pinning to prefer Debian packages over Kali
+    # Priority 100 means: only use Kali packages if not available in Debian
+    echo "[+] Configuring APT pinning..."
+    cat > /etc/apt/preferences.d/kali.pref << 'EOF'
+# Prefer Debian packages over Kali to maintain system stability
+# Kali packages only used when not available in Debian repos
+Package: *
+Pin: release o=Kali
+Pin-Priority: 100
+EOF
+    
+    echo "[+] Kali repositories configured successfully"
+}
+setup_kali_repos
+
 # Update system
 echo "[+] Updating System..."
 apt-get update
@@ -30,7 +72,8 @@ apt-get install -y \
     docker-compose \
     ca-certificates \
     gnupg \
-    software-properties-common
+    software-properties-common \
+    openvpn
 
 # Configure pip and npm trust store. This has to be done if using a custom certificate (e.g. Zscaler) because npm and
 # pip maintain their own certificate stores.
@@ -69,40 +112,10 @@ git config --system pull.rebase false
 #     rm /tmp/go.tar.gz
 # fi
 
-# Install security tools
-install_security_tools() {
-    echo "[+] Installing Security Tools..."
-    local security_packages=(
-        "nmap"
-        "masscan" 
-        "gobuster"
-        "dirbuster"
-        "nikto"
-        "sqlmap"
-        "hashcat"
-        "john"
-        "hydra"
-        "aircrack-ng"
-        "wireshark"
-        "tcpdump"
-        "netcat-traditional"
-        "socat"
-        "proxychains4"
-        "tor"
-        "burpsuite"
-        "zaproxy"
-    )
-    
-    # Install available packages (some might not be available on all distributions)
-    for package in "${security_packages[@]}"; do
-        if apt-cache show "$package" >/dev/null 2>&1; then
-            apt-get install -y "$package" || echo "[!] WARN: Failed to install $package"
-        else
-            echo "[!] WARN: Package $package not available in repositories"
-        fi
-    done
-}
-install_security_tools
+# Install Kali security tools (via metapackage)
+# kali-tools-top10 includes: nmap, sqlmap, john, hydra, wireshark, aircrack-ng, burpsuite, etc.
+echo "[+] Installing Kali Security Tools (top10 metapackage)..."
+apt-get install -y kali-tools-top10 || echo "[!] WARN: Some kali-tools-top10 packages may have failed"
 
 # Install Python security tools
 install_python_security_tools() {
