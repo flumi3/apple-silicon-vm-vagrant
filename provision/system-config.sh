@@ -22,22 +22,43 @@ echo "[+] Configuring Locale..."
 locale-gen "$LOCALE"
 localectl set-locale LANG="$LOCALE"
 
-# FIXME: keyboard config
-# # Configure keyboard
-# echo "=== Configuring Keyboard Layout ==="
+# Configure keyboard layout
+echo "[+] Configuring Keyboard Layout..."
 
-# # Set DEBIAN_FRONTEND to noninteractive to prevent any prompts
-# export DEBIAN_FRONTEND=noninteractive
-# apt-get install -y console-setup keyboard-configuration kbd
+# Ensure required packages are installed (non-interactive)
+export DEBIAN_FRONTEND=noninteractive
+apt-get install -y keyboard-configuration console-setup >/dev/null 2>&1 || true
 
-# cat > /etc/default/keyboard << EOF
-# XKBMODEL="pc105"
-# XKBLAYOUT="$KEYBOARD"
-# XKBVARIANT=""
-# XKBOPTIONS=""
-# BACKSPACE="guess"
-# EOF
+# Pre-seed debconf answers for keyboard-configuration to provide non-interactive answers before any package config
+echo "keyboard-configuration keyboard-configuration/layoutcode string $KEYBOARD" | debconf-set-selections
+echo "keyboard-configuration keyboard-configuration/xkb-keymap select $KEYBOARD" | debconf-set-selections
+echo "keyboard-configuration keyboard-configuration/model select Generic 105-key PC (intl.)" | debconf-set-selections
+echo "keyboard-configuration keyboard-configuration/variant select " | debconf-set-selections
 
-# # Apply keyboard settings
-# setupcon -k --force || true
-# localectl set-keymap "$KEYBOARD"
+# Write keyboard configuration file
+cat > /etc/default/keyboard << EOF
+XKBMODEL="pc105"
+XKBLAYOUT="$KEYBOARD"
+XKBVARIANT=""
+XKBOPTIONS=""
+BACKSPACE="guess"
+EOF
+
+# Apply console keyboard settings
+setupcon --save-only >/dev/null 2>&1 || true
+
+# Configure X11 keyboard layout to ensure the layout is applied in graphical sessions (e.g. XFCE, GNOME, etc.)
+mkdir -p /etc/X11/xorg.conf.d
+cat > /etc/X11/xorg.conf.d/00-keyboard.conf << EOF
+Section "InputClass"
+    Identifier "system-keyboard"
+    MatchIsKeyboard "on"
+    Option "XkbLayout" "$KEYBOARD"
+    Option "XkbModel" "pc105"
+EndSection
+EOF
+
+# Try to set via localectl (works if systemd is fully running)
+localectl set-x11-keymap "$KEYBOARD" pc105 "" "" 2>/dev/null || true
+
+echo "[+] Keyboard layout configured to: $KEYBOARD"
