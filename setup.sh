@@ -28,6 +28,7 @@ DEFAULT_TIMEZONE="Europe/Berlin"
 DEFAULT_KEYBOARD="de"
 DEFAULT_LOCALE="en_US.UTF-8"
 DEFAULT_PROVISIONING_MODE="minimal"
+DEFAULT_DESKTOP_ENVIRONMENT="none"
 
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -188,7 +189,7 @@ configure_provisioning() {
     
     echo "Choose how much to install during initial setup:"
     echo ""
-    echo -e "  ${BOLD}minimal${NC} - Essential tools only (~5-10 minutes)"
+    echo -e "  ${BOLD}minimal${NC} - Essential tools only (~10 minutes)"
     echo "            curl, wget, git, vim, zsh, openvpn, tmux"
     echo ""
     echo -e "  ${BOLD}full${NC}    - Complete security toolkit (~20-30 minutes)"
@@ -204,6 +205,86 @@ configure_provisioning() {
     if [[ "$PROVISIONING_MODE" != "minimal" && "$PROVISIONING_MODE" != "full" ]]; then
         print_warning "Invalid option. Defaulting to 'minimal'."
         PROVISIONING_MODE="minimal"
+    fi
+}
+
+configure_desktop() {
+    print_section "Desktop Environment"
+    
+    echo "Choose a desktop environment (optional):"
+    echo ""
+    echo -e "  ${BOLD}1) none${NC}  - Headless, command-line only (default)"
+    echo "             No GUI, lowest resource usage"
+    echo ""
+    echo -e "  ${BOLD}2) xfce${NC}  - Kali's default, lightweight"
+    echo "             Fast, low memory usage, traditional desktop"
+    echo ""
+    echo -e "  ${BOLD}3) gnome${NC} - Modern, polished macOS-like experience"
+    echo "             Smooth, intuitive, but heavier on resources"
+    echo ""
+    echo -e "  ${BOLD}4) kde${NC}   - Feature-rich, highly customizable"
+    echo "             Windows-like, lots of options and themes"
+    echo ""
+    
+    local choice
+    choice=$(prompt_with_default "Desktop environment (1-4 or name)" "1")
+    
+    # Map number to name
+    case "$choice" in
+        1|none)   DESKTOP_ENVIRONMENT="none" ;;
+        2|xfce)   DESKTOP_ENVIRONMENT="xfce" ;;
+        3|gnome)  DESKTOP_ENVIRONMENT="gnome" ;;
+        4|kde)    DESKTOP_ENVIRONMENT="kde" ;;
+        *)
+            print_warning "Invalid option. Defaulting to 'none'."
+            DESKTOP_ENVIRONMENT="none"
+            ;;
+    esac
+    
+    # Show resource warning if GUI selected
+    if [ "$DESKTOP_ENVIRONMENT" != "none" ]; then
+        echo ""
+        echo -e "${YELLOW}⚠  Desktop environments require more resources:${NC}"
+        echo ""
+        echo "   Recommended minimum:"
+        if [ "$DESKTOP_ENVIRONMENT" = "xfce" ]; then
+            echo -e "   • Memory: ${BOLD}4096 MB (4 GB)${NC}"
+            echo -e "   • CPUs:   ${BOLD}2 cores${NC}"
+        else
+            echo -e "   • Memory: ${BOLD}8192 MB (8 GB)${NC}"
+            echo -e "   • CPUs:   ${BOLD}4 cores${NC}"
+        fi
+        echo ""
+        echo "   Common memory sizes for reference:"
+        echo "   • 2048 MB = 2 GB   (too low for GUI)"
+        echo "   • 4096 MB = 4 GB   (minimum for Xfce)"
+        echo "   • 8192 MB = 8 GB   (recommended for GNOME/KDE)"
+        echo "   • 16384 MB = 16 GB (comfortable for heavy use)"
+        echo ""
+        
+        # Warn if current memory setting seems too low
+        if [ "$DESKTOP_ENVIRONMENT" = "xfce" ] && [ "$VM_MEMORY" -lt 4096 ]; then
+            print_warning "Your current memory setting ($VM_MEMORY MB) may be too low for Xfce."
+            if prompt_yes_no "Increase to 4096 MB?" "y"; then
+                VM_MEMORY="4096"
+                print_success "Memory increased to 4096 MB"
+            fi
+        elif [ "$DESKTOP_ENVIRONMENT" != "xfce" ] && [ "$VM_MEMORY" -lt 8192 ]; then
+            print_warning "Your current memory setting ($VM_MEMORY MB) may be too low for $DESKTOP_ENVIRONMENT."
+            if prompt_yes_no "Increase to 8192 MB?" "y"; then
+                VM_MEMORY="8192"
+                print_success "Memory increased to 8192 MB"
+            fi
+        fi
+        
+        # Warn if CPU count seems too low
+        if [ "$VM_CPUS" -lt 2 ]; then
+            print_warning "Your current CPU setting ($VM_CPUS) may be too low for a desktop environment."
+            if prompt_yes_no "Increase to 2 CPUs?" "y"; then
+                VM_CPUS="2"
+                print_success "CPUs increased to 2"
+            fi
+        fi
     fi
 }
 
@@ -290,6 +371,9 @@ USER_LOCALE=${USER_LOCALE}
 # Provisioning Mode: minimal (fast) or full (complete security toolkit)
 PROVISIONING_MODE=${PROVISIONING_MODE}
 
+# Desktop Environment: none, xfce, gnome, or kde
+DESKTOP_ENVIRONMENT=${DESKTOP_ENVIRONMENT}
+
 # Corporate Proxy (optional)
 HTTP_PROXY=${HTTP_PROXY}
 HTTPS_PROXY=${HTTPS_PROXY}
@@ -308,6 +392,7 @@ show_summary() {
     echo -e "  ${BOLD}Keyboard:${NC}          $USER_KEYBOARD"
     echo -e "  ${BOLD}Locale:${NC}            $USER_LOCALE"
     echo -e "  ${BOLD}Provisioning:${NC}      $PROVISIONING_MODE"
+    echo -e "  ${BOLD}Desktop:${NC}           $DESKTOP_ENVIRONMENT"
     
     if [ -n "$HTTP_PROXY" ]; then
         echo -e "  ${BOLD}HTTP Proxy:${NC}        $HTTP_PROXY"
@@ -358,6 +443,7 @@ main() {
     configure_vm_resources
     configure_locale
     configure_provisioning
+    configure_desktop
     configure_proxy
     generate_env_file
     show_summary
