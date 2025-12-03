@@ -1,0 +1,13 @@
+# =============================================================================
+# Full Mode Extra Packages
+# =============================================================================
+# Additional packages installed only in full provisioning mode.
+# One package per line. Lines starting with # are comments.
+
+# Node.js
+nodejs
+npm
+
+# Container tools
+docker.io
+docker-compose

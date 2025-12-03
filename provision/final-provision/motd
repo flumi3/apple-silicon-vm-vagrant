@@ -1,0 +1,22 @@
+
+ ██╗    ██╗███████╗██╗      ██████╗ ██████╗ ███╗   ███╗███████╗
+ ██║    ██║██╔════╝██║     ██╔════╝██╔═══██╗████╗ ████║██╔════╝
+ ██║ █╗ ██║█████╗  ██║     ██║     ██║   ██║██╔████╔██║█████╗  
+ ██║███╗██║██╔══╝  ██║     ██║     ██║   ██║██║╚██╔╝██║██╔══╝  
+ ╚███╔███╔╝███████╗███████╗╚██████╗╚██████╔╝██║ ╚═╝ ██║███████╗
+  ╚══╝╚══╝ ╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝
+ 
+ Useful Directories:
+ - Projects: ~/projects/    # Shared folder for your work
+ - Shared:   ~/shared/      # Shared folder for general files
+ - Binaries: ~/bin/         # Useful custom scripts and binaries
+ - Tools:    /opt/tools/    # Additional tools
+ 
+ Useful Commands:
+ - helpme              # Show detailed VM guide
+ - sysinfo             # Show system information
+ - backup-config       # Backup your configs
+ - zsh                 # Start Zsh shell
+
+ Enjoy!
+

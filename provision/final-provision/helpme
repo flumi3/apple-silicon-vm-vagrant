@@ -1,0 +1,113 @@
+#!/bin/bash
+# =============================================================================
+# VM Help Command
+# =============================================================================
+# Usage: helpme
+# Displays comprehensive information about the VM and its usage
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
+# Detect provisioning mode
+PROVISION_MODE="minimal"
+if [ -f /etc/vm-provision-mode ]; then
+    PROVISION_MODE=$(cat /etc/vm-provision-mode)
+fi
+
+# Detect desktop environment
+DESKTOP_ENV="none"
+if [ -f /etc/vm-desktop ]; then
+    DESKTOP_ENV=$(cat /etc/vm-desktop)
+fi
+
+echo ""
+echo -e "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BOLD}${CYAN}║                        QUICK START GUIDE                       ║${NC}"
+echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+echo -e "${BOLD}${GREEN}OVERVIEW${NC}"
+echo -e "  This VM is provisioned in ${BOLD}${PROVISION_MODE}${NC} mode"
+[ "$DESKTOP_ENV" != "none" ] && echo -e "  Desktop Environment: ${BOLD}${DESKTOP_ENV}${NC}"
+echo ""
+
+echo -e "${BOLD}${GREEN}DIRECTORY STRUCTURE${NC}"
+echo -e "  ${YELLOW}~/projects/${NC}     - Your project files (synced with host)"
+echo -e "  ${YELLOW}~/shared/${NC}       - Shared folder with host machine"
+echo -e "  ${YELLOW}~/bin/${NC}          - Useful custom scripts and binaries"
+echo -e "  ${YELLOW}/opt/tools/${NC}     - Additionals tools"
+if [ "$PROVISION_MODE" = "full" ]; then
+    echo -e "  ${YELLOW}/opt/wordlists/${NC} - Wordlists (rockyou.txt)"
+fi
+echo ""
+
+echo -e "${BOLD}${GREEN}AVAILABLE COMMANDS${NC}"
+echo ""
+echo -e "  ${BOLD}General:${NC}"
+echo -e "    ${CYAN}helpme${NC}             - Show this help guide"
+echo -e "    ${CYAN}sysinfo${NC}            - Display system information"
+echo -e "    ${CYAN}backup-config${NC}      - Backup your configuration files"
+echo -e "    ${CYAN}serve [port]${NC}       - Start HTTP server (default: 8000)"
+echo ""
+
+if [ "$PROVISION_MODE" = "full" ]; then
+    echo -e "  ${BOLD}Security Tools:${NC}"
+    echo -e "    ${CYAN}revshell [ip] [port]${NC}    - Generate reverse shell payloads"
+    echo -e "    ${CYAN}nmap-quick <target>${NC}     - Fast port scan (nmap -T4 -F)"
+    echo -e "    ${CYAN}nmap-full <target>${NC}      - Comprehensive scan (nmap -T4 -A -v)"
+    echo ""
+    
+    echo -e "  ${BOLD}Installed Security Packages:${NC}"
+    echo -e "    • kali-tools-top10 (nmap, sqlmap, john, hydra, wireshark, etc.)"
+    echo -e "    • Python: impacket, bloodhound, crackmapexec, pwntools, scapy"
+    echo -e "    • Docker for containerized tools"
+    echo ""
+fi
+
+echo -e "  ${BOLD}Directory Shortcuts:${NC}"
+echo -e "    ${CYAN}projects${NC}   - cd ~/projects"
+echo -e "    ${CYAN}shared${NC}     - cd ~/shared"
+echo -e "    ${CYAN}bin${NC}        - cd ~/bin"
+echo -e "    ${CYAN}tools${NC}      - cd /opt/tools"
+if [ "$PROVISION_MODE" = "full" ]; then
+    echo -e "    ${CYAN}wordlists${NC}  - cd /opt/wordlists"
+fi
+echo ""
+
+echo -e "${BOLD}${GREEN}NETWORK & PORTS${NC}"
+echo -e "  The following ports are forwarded to your host:"
+echo -e "    ${YELLOW}8080${NC}  - Burp Suite / ZAP Proxy"
+echo -e "    ${YELLOW}4444${NC}  - Metasploit / Reverse shells"
+echo -e "    ${YELLOW}8000${NC}  - HTTP server (serve command)"
+echo ""
+
+echo -e "${BOLD}${GREEN}USEFUL TIPS${NC}"
+echo -e "  • Files in ${YELLOW}~/shared/${NC} and ${YELLOW}~/projects/${NC} are accessible from your host machine"
+echo -e "  • Use ${CYAN}backup-config${NC} before making major changes"
+echo -e "  • Run ${CYAN}verify-setup${NC} to verify VM setup"
+if [ "$PROVISION_MODE" = "minimal" ]; then
+    echo ""
+    echo -e "  ${BOLD}${YELLOW}Want development & security tools?${NC}"
+    echo -e "  Run: ${CYAN}PROVISIONING_MODE=full vagrant provision${NC}"
+fi
+echo ""
+
+echo -e "${BOLD}${GREEN}CONFIGURATION FILES${NC}"
+echo -e "  ${YELLOW}~/.vimrc${NC}           - Vim configuration"
+echo -e "  ${YELLOW}~/.tmux.conf${NC}       - Tmux configuration (prefix: Ctrl-a)"
+echo -e "  ${YELLOW}~/.zshrc${NC}           - Zsh configuration"
+echo -e "  ${YELLOW}~/.bashrc${NC}          - Bash configuration"
+echo -e "  ${YELLOW}~/.shell_aliases${NC}   - Shell aliases being sourced into .zshrc and .bashrc"
+echo ""
+
+echo -e "${BOLD}${GREEN}DOCUMENTATION${NC}"
+echo -e "  Full documentation available in the project repository:"
+echo -e "  ${CYAN}docs/configuration.md${NC}     - VM configuration options"
+echo -e "  ${CYAN}docs/troubleshooting.md${NC}   - Common issues and solutions"
+echo ""

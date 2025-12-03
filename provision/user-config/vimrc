@@ -1,0 +1,26 @@
+" =============================================================================
+" Vim Configuration
+" =============================================================================
+
+set number
+set relativenumber
+set autoindent
+set tabstop=4
+set shiftwidth=4
+set smarttab
+set softtabstop=4
+set mouse=a
+set hlsearch
+set incsearch
+syntax on
+colorscheme desert
+
+" Enable filetype plugins
+filetype plugin indent on
+
+" Show matching brackets
+set showmatch
+
+" No annoying sound on errors
+set noerrorbells
+set novisualbell

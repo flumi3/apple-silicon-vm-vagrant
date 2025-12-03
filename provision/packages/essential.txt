@@ -1,0 +1,34 @@
+# =============================================================================
+# Essential Packages
+# =============================================================================
+# Shared by both minimal and full provisioning modes.
+# One package per line. Lines starting with # are comments.
+
+# System utilities
+ufw
+curl
+wget
+git
+vim
+zsh
+htop
+tree
+unzip
+jq
+
+# Build tools
+build-essential
+
+# Python
+python3-pip
+python3-venv
+pipx
+
+# Certificates and security
+ca-certificates
+gnupg
+software-properties-common
+
+# Networking
+openvpn
+tmux

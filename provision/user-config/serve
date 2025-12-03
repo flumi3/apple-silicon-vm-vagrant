@@ -1,0 +1,11 @@
+#!/bin/bash
+# =============================================================================
+# Quick HTTP Server
+# =============================================================================
+# Usage: serve [port]
+# Default port: 8000
+
+PORT=${1:-8000}
+echo "Starting HTTP server on port $PORT"
+echo "Access at: http://localhost:$PORT"
+python3 -m http.server $PORT

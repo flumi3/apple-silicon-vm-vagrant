@@ -1,0 +1,25 @@
+#!/bin/bash
+# =============================================================================
+# Configuration Backup Script
+# =============================================================================
+# Usage: backup-config
+# Creates timestamped backup of important configuration files
+# =============================================================================
+
+BACKUP_DIR="/home/vagrant/shared/backups"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+echo "Creating configuration backup..."
+mkdir -p "$BACKUP_DIR"
+
+# Backup important configs
+tar -czf "$BACKUP_DIR/vm-config-$DATE.tar.gz" \
+    /home/vagrant/.zshrc \
+    /home/vagrant/.vimrc \
+    /home/vagrant/.tmux.conf \
+    /home/vagrant/.gitconfig \
+    /etc/hosts \
+    /etc/ssh/sshd_config \
+    2>/dev/null
+
+echo "Backup created: $BACKUP_DIR/vm-config-$DATE.tar.gz"

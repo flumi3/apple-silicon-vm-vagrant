@@ -1,0 +1,88 @@
+#!/bin/bash
+# =============================================================================
+# VM Setup Verification
+# =============================================================================
+# Usage: ~/verify-setup.sh
+# Verifies that the VM was provisioned correctly
+# =============================================================================
+
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║                  VM Setup Verification                   ║"
+echo "╚══════════════════════════════════════════════════════════╝"
+echo ""
+
+# Check provisioning mode
+if [ -f /etc/vm-provision-mode ]; then
+    echo "Provisioning Mode: $(cat /etc/vm-provision-mode)"
+else
+    echo "Provisioning Mode: Unknown"
+fi
+
+# Check desktop environment
+if [ -f /etc/vm-desktop ]; then
+    echo "Desktop Environment: $(cat /etc/vm-desktop)"
+fi
+echo ""
+
+# Check timezone
+echo "Timezone: $(timedatectl show --property=Timezone --value 2>/dev/null || echo 'Unknown')"
+
+# Check keyboard
+echo "Keyboard: $(localectl status 2>/dev/null | grep "X11 Layout" | cut -d: -f2 | xargs || echo 'Unknown')"
+
+# Check locale
+echo "Locale: $(localectl status 2>/dev/null | grep "System Locale" | cut -d= -f2 || echo 'Unknown')"
+
+# Check Zscaler cert
+echo ""
+echo "=== Certificate Check ==="
+cert_dir="/usr/local/share/ca-certificates"
+if [ -d "$cert_dir" ]; then
+    certs=$(ls "$cert_dir"/*.crt 2>/dev/null)
+    if [ -n "$certs" ]; then
+        echo "The following certificates were installed:"
+        for cert in $certs; do
+            echo " - $(basename "$cert")"
+        done
+    else
+        echo "No additional certificates installed."
+    fi
+else
+    echo "Certificate directory $cert_dir does not exist"
+fi
+
+# Check important tools
+# TODO: is there a better way that statically listing them here?
+echo ""
+echo "=== Tool Check ==="
+for tool in python3 pip3 pipx node npm docker nmap burpsuite msfconsole ; do
+    if command -v $tool >/dev/null 2>&1; then
+        echo "$tool: Available"
+    else
+        echo "$tool: Not found"
+    fi
+done
+
+# Check custom commands
+echo ""
+echo "=== Custom Commands ==="
+for cmd in helpme serve revshell sysinfo backup-config; do
+    if command -v $cmd >/dev/null 2>&1; then
+        echo "$cmd: Available"
+    else
+        echo "$cmd: Not found"
+    fi
+done
+
+echo ""
+echo "=== Directory Structure ==="
+for dir in /opt/tools /opt/wordlists ~/projects ~/shared; do
+    if [ -d "$dir" ]; then
+        echo "$dir: Exists"
+    else
+        echo "$dir: Missing"
+    fi
+done
+
+echo ""
+echo "Setup verification complete!"

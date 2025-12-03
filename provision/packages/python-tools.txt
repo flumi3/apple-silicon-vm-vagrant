@@ -1,0 +1,20 @@
+# =============================================================================
+# Python Security Tools
+# =============================================================================
+# Python packages for security testing.
+# Format: pipx:package or pip:package
+# Lines starting with # are comments.
+
+# CLI tools installed via pipx (isolated environments)
+pipx:impacket
+pipx:bloodhound
+pipx:droopescan
+pipx:wpscan
+pipx:subfinder
+pipx:crackmapexec
+pipx:scapy
+
+# Libraries installed via pip (shared environment)
+pip:requests
+pip:beautifulsoup4
+pip:pwntools
