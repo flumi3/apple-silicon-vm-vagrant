@@ -1,14 +1,12 @@
-# Debian (Security) VM for Apple Silicon
+# Debian (Security) VM for Apple Silicon with Vagrant & UTM
 
-Want to quickly spin up VMs on your Mac running Apple Silicon (M1/M2/etc.)? Not optimal...  
-Want to do this behind a corporate proxy with SSL inspection and limited internet access? _Might as well bring the ring
-to Mordor and throw it into the volcano yourself..._  
+Want to spin up reproducible VMs on your Mac running Apple Silicon (M1/M2/etc.)? Quite the struggle already...  
+Want to have Kali-Linux? Sitting behind a corporate proxy with SSL inspection? This will make you cry - I promise.  
 But wait, there's hope!
 
-With just a few commands, you can create VMs that are ready for **security testing**, **development**, or other tasks.
-Using UTM and Vagrant, this project handles everything for you: installing **tools**, configuring **shared folders**,
-setting up **keyboard layouts**, **timezones**, **locales**, and even making the VM work seamlessly behind corporate
-proxies.
+Using [Vagrant](https://developer.hashicorp.com/vagrant) and [UTM](https://mac.getutm.app/), this project handles
+everything for you: Creating VMs, installing **tools**, configuring **shared folders**, setting up **keyboard layouts**,
+**timezones**, **locales**, and even making the VM work seamlessly behind corporate proxies.
 
 Jump to the [Quick Start](#quick-start) guide below, or check out the `docs/` folder for more information.
 
