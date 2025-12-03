@@ -7,7 +7,7 @@ pure Kali image.
 ### Content
 
 - [Provisioning Modes](#provisioning-modes)
-- [Feature Details](#feature-details)
+- [Setup Details](#setup-details)
 - [How It Works](#how-it-works)
 - [Why Vagrant + UTM?](#why-vagrant--utm)
 - [Why not Kali Linux?](#why-not-kali-linux)
@@ -45,7 +45,12 @@ vagrant up
 PROVISIONING_MODE=full vagrant provision
 ```
 
-## Feature Details
+> 💡 **Tip:** Check out `provision/packages/`, `provision/packages-minimal.sh`, and `provision/packages-full.sh` to see
+> how the package installation works and which tools are included.
+
+## Setup Details
+
+### Installed Packages
 
 ### Desktop Environments
 
@@ -103,7 +108,8 @@ flowchart LR
 
    - Updates the system and installs tools
    - Minimal mode: essential CLI tools only
-   - Full mode: adds Kali repositories and security tools
+   - Full mode: adds Kali repositories, security, and dev tools
+   - See `provision/packages/` for package lists
 
 3. **System Config** (`system-config.sh`)
 
@@ -115,6 +121,7 @@ flowchart LR
    - Installs Oh My Zsh with plugins
    - Creates directory structure (`~/projects`, `~/tools`, etc.)
    - Adds shell aliases and helper scripts
+   - Utilizes files from `provision/user/` for customization
 
 5. **Desktop Environment** (`install-desktop.sh`)
 
@@ -125,6 +132,7 @@ flowchart LR
    - Configures UFW firewall rules
    - Hardens SSH configuration
    - Runs verification checks
+   - Utilizes files from `provision/final/` for final tweaks
 
 ## Why Vagrant + UTM?
 
