@@ -26,7 +26,7 @@ end
 # =============================================================================
 
 # VM Resources
-VM_NAME = ENV['VM_NAME'] || 'security-vm'
+VM_NAME = ENV['VM_NAME'] || 'debian-vm'
 VM_MEMORY = ENV['VM_MEMORY'] || '4096'
 VM_CPUS = ENV['VM_CPUS'] || '4'
 
@@ -35,8 +35,11 @@ USER_TIMEZONE = ENV['USER_TIMEZONE'] || 'Europe/Berlin'
 USER_KEYBOARD = ENV['USER_KEYBOARD'] || 'de'
 USER_LOCALE = ENV['USER_LOCALE'] || 'en_US.UTF-8'
 
-# Provisioning Mode: 'minimal' (fast, ~5 min) or 'full' (all security tools, ~20 min)
+# Provisioning Mode: 'minimal' (fast, ~10 min) or 'full' (all security tools, ~20 min)
 PROVISIONING_MODE = ENV['PROVISIONING_MODE'] || 'minimal'
+
+# Desktop Environment: 'none', 'xfce', 'gnome', or 'kde'
+DESKTOP_ENVIRONMENT = ENV['DESKTOP_ENVIRONMENT'] || 'none'
 
 # Corporate Proxy Configuration (optional)
 HTTP_PROXY = ENV['HTTP_PROXY'] || ''
@@ -104,6 +107,37 @@ Vagrant.configure("2") do |config|
   end
 
   # ---------------------------------------------------------------------------
+  # File provisioning
+  # ---------------------------------------------------------------------------
+  
+  # Upload package lists needed for installation (upload all files in folder)
+  Dir.glob("./provision/packages/*").each do |pkg_file|
+    pkg_name = File.basename(pkg_file)
+    config.vm.provision "file",
+      source: pkg_file,
+      destination: "/tmp/packages/#{pkg_name}",
+      run: "always"
+  end
+
+  # Upload user-config files needed for provisioning
+  Dir.glob("./provision/user-config/*").each do |pkg_file|
+    pkg_name = File.basename(pkg_file)
+    config.vm.provision "file",
+      source: pkg_file,
+      destination: "/tmp/user-config/#{pkg_name}",
+      run: "always"
+  end
+
+  # Upload final-provision files needed for provisioning
+  Dir.glob("./provision/final-provision/*").each do |pkg_file|
+    pkg_name = File.basename(pkg_file)
+    config.vm.provision "file",
+      source: pkg_file,
+      destination: "/tmp/final-provision/#{pkg_name}",
+      run: "always"
+  end
+
+  # ---------------------------------------------------------------------------
   # Provisioning Scripts
   # ---------------------------------------------------------------------------
   
@@ -140,7 +174,14 @@ Vagrant.configure("2") do |config|
     path: "./provision/user-config.sh",
     privileged: true
 
-  # 5. Final configuration and verification
+  # 5. Desktop environment installation (if selected)
+  config.vm.provision "shell",
+    name: "install-desktop",
+    path: "./provision/install-desktop.sh",
+    args: [DESKTOP_ENVIRONMENT],
+    privileged: true
+
+  # 6. Final configuration and verification
   config.vm.provision "shell",
     name: "final-provision",
     path: "./provision/final-provision.sh",

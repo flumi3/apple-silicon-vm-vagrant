@@ -167,29 +167,29 @@ echo "[+] Updating System..."
 apt-get update
 apt-get upgrade -y
 
-# Install essential packages
+# Install essential packages from shared file
 echo "[+] Installing Essential Packages..."
-apt-get install -y \
-    ufw \
-    curl \
-    wget \
-    git \
-    vim \
-    zsh \
-    htop \
-    tree \
-    unzip \
-    build-essential \
-    python3-pip \
-    pipx \
-    nodejs \
-    npm \
-    docker.io \
-    docker-compose \
-    ca-certificates \
-    gnupg \
-    software-properties-common \
-    openvpn
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGES_DIR="${SCRIPT_DIR}/packages"
+
+# Read packages from essential.txt (skip comments and empty lines)
+if [ -f "${PACKAGES_DIR}/essential.txt" ]; then
+    grep -v '^#' "${PACKAGES_DIR}/essential.txt" | grep -v '^$' | xargs apt-get install -y
+else
+    echo "[!] ERROR: ${PACKAGES_DIR}/essential.txt not found"
+    exit 1
+fi
+
+# Install full-mode extra packages
+echo "[+] Installing Full Mode Extra Packages..."
+if [ -f "${PACKAGES_DIR}/full-extras.txt" ]; then
+    grep -v '^#' "${PACKAGES_DIR}/full-extras.txt" | grep -v '^$' | xargs apt-get install -y
+else
+    echo "[!] WARN: ${PACKAGES_DIR}/full-extras.txt not found, skipping extras"
+fi
+
+# Store provisioning mode for runtime detection
+echo "full" > /etc/vm-provision-mode
 
 # Configure pip and npm trust store. This has to be done if using a custom certificate (e.g. Zscaler) because npm and
 # pip maintain their own certificate stores.
@@ -219,40 +219,43 @@ install_python_security_tools() {
 
     # Ensure pipx is properly configured
     pipx ensurepath || echo "[!] WARN: Failed to configure pipx ensurepath"
-    sudo pipx ensurepath --global || echo "[!] WARN: Failed to configure pipx ensurepath --global" # optional to allow pipx actions with --global argument
+    sudo pipx ensurepath --global || echo "[!] WARN: Failed to configure pipx ensurepath --global"
     pipx completions || echo "[!] WARN: Failed to configure pipx completions"
 
-    # Install packages that work well with pipx (command-line tools)
-    local pipx_packages=(
-        "impacket"
-        "bloodhound"
-        "droopescan"
-        "wpscan"
-        "subfinder"
-        "crackmapexec"
-        "scapy"
-    )
-    
-    for package in "${pipx_packages[@]}"; do
-        echo "Installing $package with pipx..."
-        pipx install "$package" || echo "WARN: Failed to install $package with pipx"
-    done
-
-    # TODO: Change this in case it makes problems
-    # Install libraries with pip3 (these are typically used as libraries, not CLI tools)
-    # Using --break-system-packages since this is a controlled VM environment
-    local pip3_packages=(
-        "requests"
-        "beautifulsoup4"
-        "pwntools"
-    )
-    
-    for package in "${pip3_packages[@]}"; do
-        echo "Installing $package with pip3..."
-        pip3 install --user --break-system-packages "$package" || echo "WARN: Failed to install $package with pip3"
-    done
+    # Read Python tools from packages file
+    if [ -f "${PACKAGES_DIR}/python-tools.txt" ]; then
+        while IFS= read -r line; do
+            # Skip comments and empty lines
+            [[ "$line" =~ ^#.*$ || -z "$line" ]] && continue
+            
+            if [[ "$line" == pipx:* ]]; then
+                package="${line#pipx:}"
+                echo "Installing $package with pipx..."
+                pipx install "$package" || echo "WARN: Failed to install $package with pipx"
+            elif [[ "$line" == pip:* ]]; then
+                package="${line#pip:}"
+                echo "Installing $package with pip3..."
+                pip3 install --user --break-system-packages "$package" || echo "WARN: Failed to install $package with pip3"
+            fi
+        done < "${PACKAGES_DIR}/python-tools.txt"
+    else
+        echo "[!] WARN: ${PACKAGES_DIR}/python-tools.txt not found, skipping Python tools"
+    fi
 }
 install_python_security_tools
+
+# Download common wordlists
+mkdir -p /opt/wordlists
+echo "[+] Setting up Wordlists..."
+if [ ! -f "/opt/wordlists/rockyou.txt" ]; then
+    wget -q "https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt" -O /opt/wordlists/rockyou.txt
+fi
+
+# FIXME: Disabled SecLists clone for now because provisioning gets stuck on it
+# if [ ! -d "/opt/wordlists/SecLists" ]; then
+#     git clone https://github.com/danielmiessler/SecLists.git /opt/wordlists/SecLists
+# fi
+chown -R "$DEFAULT_USER":"$DEFAULT_USER" /opt/wordlists
 
 echo ""
 echo "=============================================="
@@ -260,7 +263,8 @@ echo "  FULL INSTALLATION COMPLETE"
 echo ""
 echo "  Installed:"
 echo "  - Essential tools (curl, wget, git, vim, zsh, etc.)"
+echo "  - Development tools (nodejs, docker, etc.)"
 echo "  - Kali security tools (kali-tools-top10)"
 echo "  - Python security packages (impacket, bloodhound, etc.)"
-echo "  - Docker and development tools"
+echo "  - Common wordlists (rockyou.txt)"
 echo "=============================================="

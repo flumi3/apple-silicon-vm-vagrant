@@ -4,7 +4,7 @@ set -e
 # =============================================================================
 # Minimal Package Installation
 # =============================================================================
-# Fast provisioning (~5-10 minutes) with essential tools only.
+# Fast provisioning (~10 minutes) with essential tools only.
 # For a complete security toolkit, use PROVISIONING_MODE=full
 # =============================================================================
 
@@ -13,7 +13,7 @@ export DEBIAN_FRONTEND=noninteractive
 echo "=============================================="
 echo "  MINIMAL PROVISIONING MODE"
 echo "  Installing essential packages only"
-echo "  For full security tools: PROVISIONING_MODE=full"
+echo "  For development & security tools: PROVISIONING_MODE=full"
 echo "=============================================="
 
 # Export CA bundle for current session
@@ -23,36 +23,27 @@ export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 # =============================================================================
 # System Update
 # =============================================================================
-echo "[+] Updating system..."
+echo "[+] Updating package repositories..."
 apt-get update
-apt-get upgrade -y
+# apt-get upgrade -y
 
 # =============================================================================
 # Essential Packages
 # =============================================================================
 echo "[+] Installing essential packages..."
-apt-get install -y \
-    ufw \
-    curl \
-    wget \
-    git \
-    vim \
-    zsh \
-    htop \
-    tree \
-    unzip \
-    build-essential \
-    python3-pip \
-    python3-venv \
-    pipx \
-    nodejs \
-    npm \
-    ca-certificates \
-    gnupg \
-    software-properties-common \
-    openvpn \
-    tmux \
-    jq
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGES_DIR="${SCRIPT_DIR}/packages"
+
+# Read packages from essential.txt (skip comments and empty lines)
+if [ -f "${PACKAGES_DIR}/essential.txt" ]; then
+    grep -v '^#' "${PACKAGES_DIR}/essential.txt" | grep -v '^$' | xargs apt-get install -y
+else
+    echo "[!] ERROR: ${PACKAGES_DIR}/essential.txt not found"
+    exit 1
+fi
+
+# Store provisioning mode for runtime detection
+echo "minimal" > /etc/vm-provision-mode
 
 # =============================================================================
 # Configure Tools
@@ -76,9 +67,6 @@ sudo pipx ensurepath --global 2>/dev/null || true
 echo ""
 echo "=============================================="
 echo "  MINIMAL INSTALLATION COMPLETE"
-echo ""
-echo "  Installed: curl, wget, git, vim, zsh, htop,"
-echo "  openvpn, python3, nodejs, tmux"
 echo ""
 echo "  To add security tools later, run:"
 echo "  PROVISIONING_MODE=full vagrant provision"
