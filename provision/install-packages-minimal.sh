@@ -8,12 +8,19 @@ set -e
 # For a complete security toolkit, use PROVISIONING_MODE=full
 # =============================================================================
 
+# Prevent interactive prompts during package installation
 export DEBIAN_FRONTEND=noninteractive
+# Prevent needrestart from prompting during automated provisioning
+export NEEDRESTART_MODE=a
+# Completely disable needrestart to prevent SSH restart killing Vagrant connection
+export NEEDRESTART_SUSPEND=1
+# Also disable via config file (belt and suspenders)
+mkdir -p /etc/needrestart/conf.d
+echo "\$nrconf{restart} = 'l';" > /etc/needrestart/conf.d/50-vagrant.conf
 
 echo "=============================================="
-echo "  MINIMAL PROVISIONING MODE"
-echo "  Installing essential packages only"
-echo "  For development & security tools: PROVISIONING_MODE=full"
+echo "  MINIMAL INSTALLATION"
+echo "  Installing essential packages"
 echo "=============================================="
 
 # Export CA bundle for current session
@@ -42,6 +49,11 @@ else
     exit 1
 fi
 
+# Install pipx via pip to get latest version (Debian's apt version is outdated)
+echo "[+] Installing pipx via pip..."
+python3 -m pip install --user pipx --break-system-packages || echo "[!] WARN: Failed to install pipx"
+export PATH="$HOME/.local/bin:$PATH"
+
 # Store provisioning mode for runtime detection
 echo "minimal" > /etc/vm-provision-mode
 
@@ -61,8 +73,19 @@ git config --system pull.rebase false
 
 # Configure pipx
 echo "[+] Configuring pipx..."
-pipx ensurepath 2>/dev/null || true
-sudo pipx ensurepath --global 2>/dev/null || true
+# Ensure pipx is properly configured
+python3 -m pipx ensurepath || echo "[!] WARN: Failed to configure pipx ensurepath"
+pipx completions || echo "[!] WARN: Failed to configure pipx completions"
+# Enable pipx autocompletion for bash (idempotent - check before adding)
+if ! grep -q "register-python-argcomplete pipx" ~/.bashrc 2>/dev/null; then
+    echo "eval '\$(register-python-argcomplete pipx)'" >> ~/.bashrc
+fi
+# TODO: enable autocompletion for zsh as well:
+# To activate completions for zsh you need to have bashcompinit enabled in zsh:
+#   autoload -U bashcompinit
+#   bashcompinit
+# Afterwards you can enable completion for pipx:
+#   echo "eval '$(register-python-argcomplete pipx)'" >> ~/.zshrc
 
 echo ""
 echo "=============================================="

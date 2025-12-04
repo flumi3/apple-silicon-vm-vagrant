@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-DEFAULT_USER=${1:-"vagrant"}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="${SCRIPT_DIR}/final-provision"
 

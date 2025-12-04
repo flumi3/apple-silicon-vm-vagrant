@@ -2,21 +2,42 @@
 set -e
 
 # =============================================================================
-# Full Package Installation (Security Toolkit)
+# Full Package Installation
 # =============================================================================
-# Complete provisioning (~20 minutes) with all security tools.
-# Includes: Kali tools, Developer tools, wordlists, Python security packages
-# For faster setup, use PROVISIONING_MODE=minimal
+# This script extends install-packages-minimal.sh with security and development
+# tools. It should only run AFTER install-packages-minimal.sh has completed.
+#
+# Includes:
+# - Kali Linux repository setup with APT pinning
+# - Individual Kali tools (avoiding metapackage dependency conflicts)
+# - Metasploit Framework via Docker (lazy-loading wrapper)
+# - Python security packages via pipx/pip
+# - Common wordlists
 # =============================================================================
 
+# Prevent interactive prompts during package installation
 export DEBIAN_FRONTEND=noninteractive
+# Prevent needrestart from prompting during automated provisioning
+export NEEDRESTART_MODE=a
+# Completely disable needrestart to prevent SSH restart killing Vagrant connection
+export NEEDRESTART_SUSPEND=1
+# Also disable via config file (belt and suspenders)
+mkdir -p /etc/needrestart/conf.d
+echo "\$nrconf{restart} = 'l';" > /etc/needrestart/conf.d/50-vagrant.conf
 
 echo "=============================================="
-echo "  FULL PROVISIONING MODE"
-echo "  Installing complete security toolkit"
-echo "  This may take 20-30 minutes..."
+echo "  FULL INSTALLATION"
+echo "  Extending minimal setup with security and development tools"
+echo "  This may take 10-15 minutes..."
 echo "=============================================="
 
+# Resolve script directory for accessing package lists
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGES_DIR="${SCRIPT_DIR}/packages"
+
+# =============================================================================
+# Kali Repository Setup
+# =============================================================================
 # Setup Kali Linux repositories with APT pinning
 # Priority 100 ensures Debian packages are preferred, Kali only used for tools not in Debian
 setup_kali_repos() {
@@ -160,67 +181,121 @@ EOF
     
     echo "[+] Kali repositories configured successfully"
 }
-setup_kali_repos
 
-# Update system
-echo "[+] Updating System..."
-apt-get update
-apt-get upgrade -y
+# =============================================================================
+# Kali Tools Installation (Individual Packages)
+# =============================================================================
+# Install tools individually to avoid dependency conflicts from metapackages
+install_kali_tools() {
+    echo "[+] Installing Kali Security Tools (individual packages)..."
+    
+    if [ ! -f "${PACKAGES_DIR}/kali-tools.txt" ]; then
+        echo "[!] WARN: ${PACKAGES_DIR}/kali-tools.txt not found, skipping Kali tools"
+        return 0
+    fi
+    
+    local failed_packages=""
+    local success_count=0
+    local fail_count=0
+    
+    while IFS= read -r package; do
+        # Skip comments and empty lines
+        [[ "$package" =~ ^#.*$ || -z "$package" ]] && continue
+        
+        echo "    Installing: $package"
+        if apt-get install -y "$package" 2>/dev/null; then
+            ((success_count++)) || true
+        else
+            echo "    [!] WARN: Failed to install $package"
+            failed_packages="$failed_packages $package"
+            ((fail_count++)) || true
+        fi
+    done < "${PACKAGES_DIR}/kali-tools.txt"
+    
+    echo "[+] Kali tools installation complete: $success_count succeeded, $fail_count failed"
+    if [ -n "$failed_packages" ]; then
+        echo "    Failed packages:$failed_packages"
+    fi
+}
 
-# Install essential packages from shared file
-echo "[+] Installing Essential Packages..."
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKAGES_DIR="${SCRIPT_DIR}/packages"
+# =============================================================================
+# Metasploit Framework (Docker-based)
+# =============================================================================
+# Metasploit requires ruby 3.3+ and libc6 2.38+ which conflict with Debian 12.
+# We use the official Docker image with a wrapper script for seamless usage.
+install_metasploit_docker() {
+    echo "[+] Setting up Metasploit Framework (Docker)..."
+    
+    # Ensure Docker is available
+    if ! command -v docker &> /dev/null; then
+        echo "[!] WARN: Docker not available, skipping Metasploit setup"
+        echo "    Install docker.io package and re-run provisioning"
+        return 1
+    fi
+    
+    # Create wrapper script for msfconsole (lazy-loading)
+    cat > /usr/local/bin/msfconsole << 'WRAPPER'
+#!/bin/bash
+# Metasploit Framework wrapper - runs via Docker
+# Image is pulled on first use (lazy loading)
 
-# Read packages from essential.txt (skip comments and empty lines)
-if [ -f "${PACKAGES_DIR}/essential.txt" ]; then
-    grep -v '^#' "${PACKAGES_DIR}/essential.txt" | grep -v '^$' | xargs apt-get install -y
-else
-    echo "[!] ERROR: ${PACKAGES_DIR}/essential.txt not found"
-    exit 1
+IMAGE="docker.io/metasploitframework/metasploit-framework"
+
+# Check if image exists, pull if not
+if ! docker image inspect "$IMAGE" &>/dev/null; then
+    echo "[*] Pulling Metasploit Docker image (first run, ~2-3GB)..."
+    echo "    This may take a few minutes..."
+    docker pull "$IMAGE"
 fi
 
-# Install full-mode extra packages
-echo "[+] Installing Full Mode Extra Packages..."
-if [ -f "${PACKAGES_DIR}/full-extras.txt" ]; then
-    grep -v '^#' "${PACKAGES_DIR}/full-extras.txt" | grep -v '^$' | xargs apt-get install -y
-else
-    echo "[!] WARN: ${PACKAGES_DIR}/full-extras.txt not found, skipping extras"
+# Run msfconsole with network access and volume mounts
+exec docker run -it --rm \
+    --network host \
+    -v /home/vagrant:/home/vagrant \
+    -v /opt/wordlists:/opt/wordlists:ro \
+    -v /tmp:/tmp \
+    -w /home/vagrant \
+    "$IMAGE" \
+    ./msfconsole "$@"
+WRAPPER
+    chmod +x /usr/local/bin/msfconsole
+    
+    # Create wrapper for msfvenom
+    cat > /usr/local/bin/msfvenom << 'WRAPPER'
+#!/bin/bash
+# Metasploit msfvenom wrapper - runs via Docker
+
+IMAGE="docker.io/metasploitframework/metasploit-framework"
+
+# Check if image exists, pull if not
+if ! docker image inspect "$IMAGE" &>/dev/null; then
+    echo "[*] Pulling Metasploit Docker image (first run, ~2-3GB)..."
+    docker pull "$IMAGE"
 fi
 
-# Store provisioning mode for runtime detection
-echo "full" > /etc/vm-provision-mode
+exec docker run -it --rm \
+    --network host \
+    -v /home/vagrant:/home/vagrant \
+    -v /opt/wordlists:/opt/wordlists:ro \
+    -v "$(pwd)":/workdir \
+    -w /workdir \
+    "$IMAGE" \
+    ./msfvenom "$@"
+WRAPPER
+    chmod +x /usr/local/bin/msfvenom
+    
+    echo "[+] Metasploit wrapper scripts created"
+    echo "    Run 'msfconsole' to start (image will download on first use)"
+}
 
-# Configure pip and npm trust store. This has to be done if using a custom certificate (e.g. Zscaler) because npm and
-# pip maintain their own certificate stores.
-pip3 config set global.cert /etc/ssl/certs/ca-certificates.crt
-npm config set -g cafile /etc/ssl/certs/ca-certificates.crt
-
-# Configure Docker
-echo "[+] Configuring Docker..."
-usermod -aG docker vagrant
-# systemctl enable docker
-# systemctl start docker
-
-# Configure Git globally
-echo "[+] Configuring Git..."
-git config --system init.defaultBranch main
-git config --system pull.rebase false
-
-# Install Kali security tools (via metapackage)
-# kali-tools-top10 includes: nmap, sqlmap, john, hydra, wireshark, aircrack-ng, burpsuite, etc.
-# See https://www.kali.org/tools/kali-meta/
-echo "[+] Installing Kali Security Tools (top10 metapackage)..."
-apt-get install -y kali-tools-top10 || echo "[!] WARN: Some kali-tools-top10 packages may have failed"
-
-# Install Python security tools
+# =============================================================================
+# Python Security Tools
+# =============================================================================
 install_python_security_tools() {
     echo "[+] Installing Python Security Packages..."
 
-    # Ensure pipx is properly configured
-    pipx ensurepath || echo "[!] WARN: Failed to configure pipx ensurepath"
-    sudo pipx ensurepath --global || echo "[!] WARN: Failed to configure pipx ensurepath --global"
-    pipx completions || echo "[!] WARN: Failed to configure pipx completions"
+    # Ensure pipx is available and in PATH
+    export PATH="$HOME/.local/bin:/root/.local/bin:$PATH"
 
     # Read Python tools from packages file
     if [ -f "${PACKAGES_DIR}/python-tools.txt" ]; then
@@ -230,41 +305,98 @@ install_python_security_tools() {
             
             if [[ "$line" == pipx:* ]]; then
                 package="${line#pipx:}"
-                echo "Installing $package with pipx..."
-                pipx install "$package" || echo "WARN: Failed to install $package with pipx"
+                echo "    Installing $package with pipx..."
+                pipx install "$package" || echo "    [!] WARN: Failed to install $package with pipx"
             elif [[ "$line" == pip:* ]]; then
                 package="${line#pip:}"
-                echo "Installing $package with pip3..."
-                pip3 install --user --break-system-packages "$package" || echo "WARN: Failed to install $package with pip3"
+                echo "    Installing $package with pip3..."
+                pip3 install --user --break-system-packages "$package" || echo "    [!] WARN: Failed to install $package with pip3"
             fi
         done < "${PACKAGES_DIR}/python-tools.txt"
     else
         echo "[!] WARN: ${PACKAGES_DIR}/python-tools.txt not found, skipping Python tools"
     fi
 }
-install_python_security_tools
 
-# Download common wordlists
-mkdir -p /opt/wordlists
-echo "[+] Setting up Wordlists..."
-if [ ! -f "/opt/wordlists/rockyou.txt" ]; then
-    wget -q "https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt" -O /opt/wordlists/rockyou.txt
+# =============================================================================
+# Wordlists Setup
+# =============================================================================
+setup_wordlists() {
+    echo "[+] Setting up Wordlists..."
+    mkdir -p /opt/wordlists
+    
+    # Download rockyou.txt if not present
+    if [ ! -f "/opt/wordlists/rockyou.txt" ]; then
+        echo "    Downloading rockyou.txt..."
+        wget -q "https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt" \
+            -O /opt/wordlists/rockyou.txt || echo "    [!] WARN: Failed to download rockyou.txt"
+    fi
+    
+    # Set permissions
+    chown -R vagrant:vagrant /opt/wordlists 2>/dev/null || true
+}
+
+# =============================================================================
+# Docker Configuration
+# =============================================================================
+configure_docker() {
+    echo "[+] Configuring Docker..."
+    
+    # Add vagrant user to docker group
+    usermod -aG docker vagrant 2>/dev/null || true
+    
+    # Enable and start Docker service
+    systemctl enable docker 2>/dev/null || true
+    systemctl start docker 2>/dev/null || true
+}
+
+# =============================================================================
+# Main Execution
+# =============================================================================
+
+# Update provisioning mode marker
+echo "full" > /etc/vm-provision-mode
+
+# Setup Kali repositories
+setup_kali_repos
+
+# Update package lists after adding Kali repos
+echo "[+] Updating package lists..."
+apt-get update
+
+# Install full-mode extra packages (nodejs, docker, etc.)
+echo "[+] Installing Full Mode Extra Packages..."
+if [ -f "${PACKAGES_DIR}/full-extras.txt" ]; then
+    grep -v '^#' "${PACKAGES_DIR}/full-extras.txt" | grep -v '^$' | xargs apt-get install -y || true
+else
+    echo "[!] WARN: ${PACKAGES_DIR}/full-extras.txt not found, skipping extras"
 fi
 
-# FIXME: Disabled SecLists clone for now because provisioning gets stuck on it
-# if [ ! -d "/opt/wordlists/SecLists" ]; then
-#     git clone https://github.com/danielmiessler/SecLists.git /opt/wordlists/SecLists
-# fi
-chown -R "$DEFAULT_USER":"$DEFAULT_USER" /opt/wordlists
+# Configure Docker
+configure_docker
+
+# Install Kali tools individually
+install_kali_tools
+
+# Setup Metasploit via Docker
+install_metasploit_docker
+
+# Install Python security tools
+install_python_security_tools
+
+# Setup wordlists
+setup_wordlists
 
 echo ""
 echo "=============================================="
 echo "  FULL INSTALLATION COMPLETE"
 echo ""
 echo "  Installed:"
-echo "  - Essential tools (curl, wget, git, vim, zsh, etc.)"
-echo "  - Development tools (nodejs, docker, etc.)"
-echo "  - Kali security tools (kali-tools-top10)"
+echo "  - Kali security tools (nmap, sqlmap, john, hydra, etc.)"
+echo "  - Metasploit Framework (Docker-based, lazy-loaded)"
 echo "  - Python security packages (impacket, bloodhound, etc.)"
 echo "  - Common wordlists (rockyou.txt)"
+echo ""
+echo "  Note: Run 'msfconsole' to start Metasploit"
+echo "        (Docker image downloads on first use)"
 echo "=============================================="

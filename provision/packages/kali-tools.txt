@@ -1,0 +1,43 @@
+# =============================================================================
+# Kali Security Tools (Individual Packages)
+# =============================================================================
+# These tools are installed individually from Kali repos to avoid dependency
+# conflicts with the kali-tools-top10 metapackage on Debian 12 (bookworm).
+#
+# Tools like metasploit-framework and netexec have incompatible dependencies
+# (require ruby 3.3+, libc6 2.38+, etc.) and are installed via Docker/pipx instead.
+#
+# One package per line. Lines starting with # are comments.
+# =============================================================================
+
+# Network scanning & enumeration
+nmap
+
+# Web application testing
+sqlmap
+nikto
+dirb
+gobuster
+wfuzz
+
+# Password cracking
+john
+hashcat
+hydra
+
+# Wireless tools (may require specific hardware)
+aircrack-ng
+
+# Packet analysis
+wireshark
+tshark
+
+# Exploitation framework helpers
+exploitdb
+searchsploit
+
+# Reverse engineering
+radare2
+
+# Wordlists (Kali's wordlist package)
+wordlists

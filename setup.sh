@@ -192,7 +192,7 @@ configure_provisioning() {
     echo -e "  ${BOLD}minimal${NC} - Essential tools only (~10 minutes)"
     echo "            curl, wget, git, vim, zsh, openvpn, tmux"
     echo ""
-    echo -e "  ${BOLD}full${NC}    - Complete security toolkit (~20-30 minutes)"
+    echo -e "  ${BOLD}full${NC}    - Complete security toolkit (~15-20 minutes)"
     echo "            Everything in minimal, plus:"
     echo "            - Kali Linux security tools (nmap, burpsuite, metasploit, etc.)"
     echo "            - Python security packages (impacket, bloodhound, etc.)"
