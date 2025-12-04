@@ -34,10 +34,10 @@ tshark
 
 # Exploitation framework helpers
 exploitdb
-searchsploit
+# searchsploit - Error during install. FIXME
 
 # Reverse engineering
-radare2
+# radare2 - Error during install. FIXME
 
 # Wordlists (Kali's wordlist package)
 wordlists

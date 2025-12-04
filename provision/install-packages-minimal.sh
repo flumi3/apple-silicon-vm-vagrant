@@ -38,8 +38,7 @@ apt-get update
 # Essential Packages
 # =============================================================================
 echo "[+] Installing essential packages..."
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKAGES_DIR="${SCRIPT_DIR}/packages"
+PACKAGES_DIR="/tmp/packages"
 
 # Read packages from essential.txt (skip comments and empty lines)
 if [ -f "${PACKAGES_DIR}/essential.txt" ]; then

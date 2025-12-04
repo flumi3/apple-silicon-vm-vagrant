@@ -3,8 +3,7 @@ set -e
 
 DEFAULT_USER=${1:-"vagrant"}
 USER_HOME="/home/$DEFAULT_USER"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_DIR="${SCRIPT_DIR}/user-config"
+CONFIG_DIR="/tmp/scripts/user"
 
 echo "[+] Starting User Configuration for user $DEFAULT_USER (running as $(whoami))..."
 
@@ -120,6 +119,10 @@ done
 # Add ~/bin to PATH
 echo "export PATH=\$PATH:~/bin" >> "$USER_HOME/.zshrc"
 echo "export PATH=\$PATH:~/bin" >> "$USER_HOME/.bashrc"
+
+# Create .hushlogin to suppress default Kali/Debian login message
+# Our custom MOTD in /etc/motd will still be shown
+touch "$USER_HOME/.hushlogin"
 
 # Fix ownership of all user files
 chown -R "$DEFAULT_USER":"$DEFAULT_USER" "$USER_HOME"

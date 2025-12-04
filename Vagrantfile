@@ -123,30 +123,14 @@ Vagrant.configure("2") do |config|
   # File provisioning
   # ---------------------------------------------------------------------------
   
-  # Upload package lists needed for installation (upload all files in folder)
-  Dir.glob("./provision/packages/*").each do |pkg_file|
-    pkg_name = File.basename(pkg_file)
+  # Upload all config files to /tmp/ preserving directory structure
+  # This includes: packages/, scripts/user/, scripts/system/
+  Dir.glob("./config/**/*").select { |f| File.file?(f) }.each do |file|
+    # Get relative path from config/ directory
+    rel_path = file.sub("./config/", "")
     config.vm.provision "file",
-      source: pkg_file,
-      destination: "/tmp/packages/#{pkg_name}",
-      run: "always"
-  end
-
-  # Upload user-config files needed for provisioning
-  Dir.glob("./provision/user-config/*").each do |pkg_file|
-    pkg_name = File.basename(pkg_file)
-    config.vm.provision "file",
-      source: pkg_file,
-      destination: "/tmp/user-config/#{pkg_name}",
-      run: "always"
-  end
-
-  # Upload final-provision files needed for provisioning
-  Dir.glob("./provision/final-provision/*").each do |pkg_file|
-    pkg_name = File.basename(pkg_file)
-    config.vm.provision "file",
-      source: pkg_file,
-      destination: "/tmp/final-provision/#{pkg_name}",
+      source: file,
+      destination: "/tmp/#{rel_path}",
       run: "always"
   end
 

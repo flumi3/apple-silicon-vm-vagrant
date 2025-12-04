@@ -1,0 +1,22 @@
+#!/bin/bash
+# Metasploit Framework wrapper - runs via Docker
+# Image is pulled on first use (lazy loading)
+
+IMAGE="docker.io/metasploitframework/metasploit-framework"
+
+# Check if image exists, pull if not
+if ! docker image inspect "$IMAGE" &>/dev/null; then
+    echo "[*] Pulling Metasploit Docker image (first run, ~2-3GB)..."
+    echo "    This may take a few minutes..."
+    docker pull "$IMAGE"
+fi
+
+# Run msfconsole with network access and volume mounts
+exec docker run -it --rm \
+    --network host \
+    -v /home/vagrant:/home/vagrant \
+    -v /opt/wordlists:/opt/wordlists:ro \
+    -v /tmp:/tmp \
+    -w /home/vagrant \
+    "$IMAGE" \
+    ./msfconsole "$@"

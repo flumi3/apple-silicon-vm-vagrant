@@ -31,9 +31,8 @@ echo "  Extending minimal setup with security and development tools"
 echo "  This may take 10-15 minutes..."
 echo "=============================================="
 
-# Resolve script directory for accessing package lists
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKAGES_DIR="${SCRIPT_DIR}/packages"
+# Package lists are uploaded to /tmp/packages by Vagrant
+PACKAGES_DIR="/tmp/packages"
 
 # =============================================================================
 # Kali Repository Setup
@@ -233,56 +232,17 @@ install_metasploit_docker() {
         return 1
     fi
     
-    # Create wrapper script for msfconsole (lazy-loading)
-    cat > /usr/local/bin/msfconsole << 'WRAPPER'
-#!/bin/bash
-# Metasploit Framework wrapper - runs via Docker
-# Image is pulled on first use (lazy loading)
-
-IMAGE="docker.io/metasploitframework/metasploit-framework"
-
-# Check if image exists, pull if not
-if ! docker image inspect "$IMAGE" &>/dev/null; then
-    echo "[*] Pulling Metasploit Docker image (first run, ~2-3GB)..."
-    echo "    This may take a few minutes..."
-    docker pull "$IMAGE"
-fi
-
-# Run msfconsole with network access and volume mounts
-exec docker run -it --rm \
-    --network host \
-    -v /home/vagrant:/home/vagrant \
-    -v /opt/wordlists:/opt/wordlists:ro \
-    -v /tmp:/tmp \
-    -w /home/vagrant \
-    "$IMAGE" \
-    ./msfconsole "$@"
-WRAPPER
-    chmod +x /usr/local/bin/msfconsole
+    # Install wrapper scripts from config (uploaded to /tmp/scripts/system/)
+    local scripts_dir="/tmp/scripts/system"
     
-    # Create wrapper for msfvenom
-    cat > /usr/local/bin/msfvenom << 'WRAPPER'
-#!/bin/bash
-# Metasploit msfvenom wrapper - runs via Docker
-
-IMAGE="docker.io/metasploitframework/metasploit-framework"
-
-# Check if image exists, pull if not
-if ! docker image inspect "$IMAGE" &>/dev/null; then
-    echo "[*] Pulling Metasploit Docker image (first run, ~2-3GB)..."
-    docker pull "$IMAGE"
-fi
-
-exec docker run -it --rm \
-    --network host \
-    -v /home/vagrant:/home/vagrant \
-    -v /opt/wordlists:/opt/wordlists:ro \
-    -v "$(pwd)":/workdir \
-    -w /workdir \
-    "$IMAGE" \
-    ./msfvenom "$@"
-WRAPPER
-    chmod +x /usr/local/bin/msfvenom
+    for script in msfconsole msfvenom; do
+        if [ -f "${scripts_dir}/${script}" ]; then
+            cp "${scripts_dir}/${script}" "/usr/local/bin/${script}"
+            chmod +x "/usr/local/bin/${script}"
+        else
+            echo "[!] WARN: ${scripts_dir}/${script} not found"
+        fi
+    done
     
     echo "[+] Metasploit wrapper scripts created"
     echo "    Run 'msfconsole' to start (image will download on first use)"

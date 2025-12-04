@@ -1,0 +1,19 @@
+#!/bin/bash
+# Metasploit msfvenom wrapper - runs via Docker
+
+IMAGE="docker.io/metasploitframework/metasploit-framework"
+
+# Check if image exists, pull if not
+if ! docker image inspect "$IMAGE" &>/dev/null; then
+    echo "[*] Pulling Metasploit Docker image (first run, ~2-3GB)..."
+    docker pull "$IMAGE"
+fi
+
+exec docker run -it --rm \
+    --network host \
+    -v /home/vagrant:/home/vagrant \
+    -v /opt/wordlists:/opt/wordlists:ro \
+    -v "$(pwd)":/workdir \
+    -w /workdir \
+    "$IMAGE" \
+    ./msfvenom "$@"

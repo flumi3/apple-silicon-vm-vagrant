@@ -1,8 +1,7 @@
 #!/bin/bash
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_DIR="${SCRIPT_DIR}/final-provision"
+CONFIG_DIR="/tmp/scripts/system"
 
 echo "[+] Final System Configuration..."
 

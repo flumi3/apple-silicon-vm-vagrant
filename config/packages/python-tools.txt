@@ -10,8 +10,7 @@ pipx:impacket
 pipx:bloodhound
 pipx:droopescan
 pipx:wpscan
-pipx:subfinder
-pipx:crackmapexec
+pipx:netexec
 pipx:scapy
 
 # Libraries installed via pip (shared environment)
