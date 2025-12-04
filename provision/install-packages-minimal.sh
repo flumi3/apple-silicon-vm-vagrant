@@ -49,9 +49,13 @@ else
 fi
 
 # Install pipx via pip to get latest version (Debian's apt version is outdated)
-echo "[+] Installing pipx via pip..."
-python3 -m pip install --user pipx --break-system-packages || echo "[!] WARN: Failed to install pipx"
-export PATH="$HOME/.local/bin:$PATH"
+echo "[+] Installing pipx via pip for vagrant user..."
+# Install pipx into the vagrant user's --user site so it's available after SSH
+sudo -H -u vagrant python3 -m pip install --user pipx --break-system-packages --no-warn-script-location || echo "[!] WARN: Failed to install pipx for vagrant"
+# Configure pipx for the vagrant user (ensurepath writes to their shell files)
+sudo -H -u vagrant python3 -m pipx ensurepath || echo "[!] WARN: Failed to configure pipx ensurepath for vagrant"
+# Try enabling pipx completions for vagrant (best-effort)
+sudo -H -u vagrant bash -lc '/home/vagrant/.local/bin/pipx completions' >/dev/null 2>&1 || true
 
 # Store provisioning mode for runtime detection
 echo "minimal" > /etc/vm-provision-mode
@@ -72,8 +76,8 @@ git config --system pull.rebase false
 
 # Configure pipx
 echo "[+] Configuring pipx..."
-# Ensure pipx is properly configured
-python3 -m pipx ensurepath || echo "[!] WARN: Failed to configure pipx ensurepath"
+# Note: pipx ensurepath is idempotent and already called during user setup
+# Do NOT call it again here as it would add duplicate PATH entries
 pipx completions || echo "[!] WARN: Failed to configure pipx completions"
 # Enable pipx autocompletion for bash (idempotent - check before adding)
 if ! grep -q "register-python-argcomplete pipx" ~/.bashrc 2>/dev/null; then

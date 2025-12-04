@@ -254,8 +254,8 @@ install_metasploit_docker() {
 install_python_security_tools() {
     echo "[+] Installing Python Security Packages..."
 
-    # Ensure pipx is available and in PATH
-    export PATH="$HOME/.local/bin:/root/.local/bin:$PATH"
+    # Ensure pipx is available and in PATH for the vagrant user
+    export PATH="/home/vagrant/.local/bin:/root/.local/bin:$PATH"
 
     # Read Python tools from packages file
     if [ -f "${PACKAGES_DIR}/python-tools.txt" ]; then
@@ -265,8 +265,8 @@ install_python_security_tools() {
             
             if [[ "$line" == pipx:* ]]; then
                 package="${line#pipx:}"
-                echo "    Installing $package with pipx..."
-                pipx install "$package" || echo "    [!] WARN: Failed to install $package with pipx"
+                echo "    Installing $package with pipx (as vagrant)..."
+                sudo -H -u vagrant bash -lc 'export PATH="$HOME/.local/bin:$PATH"; pipx install "'$package'"' || echo "    [!] WARN: Failed to install $package with pipx"
             elif [[ "$line" == pip:* ]]; then
                 package="${line#pip:}"
                 echo "    Installing $package with pip3..."

@@ -116,9 +116,21 @@ for script in serve revshell; do
     fi
 done
 
-# Add ~/bin to PATH
-echo "export PATH=\$PATH:~/bin" >> "$USER_HOME/.zshrc"
-echo "export PATH=\$PATH:~/bin" >> "$USER_HOME/.bashrc"
+# Add ~/bin to PATH (idempotent - check before adding)
+if ! grep -q 'export PATH.*~/bin' "$USER_HOME/.zshrc" 2>/dev/null; then
+    echo "export PATH=\$PATH:~/bin" >> "$USER_HOME/.zshrc"
+fi
+if ! grep -q 'export PATH.*~/bin' "$USER_HOME/.bashrc" 2>/dev/null; then
+    echo "export PATH=\$PATH:~/bin" >> "$USER_HOME/.bashrc"
+fi
+
+# Ensure user's local Python bin directory is in PATH (for pipx and --user installs) (idempotent)
+if ! grep -q '.local/bin' "$USER_HOME/.zshrc" 2>/dev/null; then
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$USER_HOME/.zshrc"
+fi
+if ! grep -q '.local/bin' "$USER_HOME/.bashrc" 2>/dev/null; then
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$USER_HOME/.bashrc"
+fi
 
 # Create .hushlogin to suppress default Kali/Debian login message
 # Our custom MOTD in /etc/motd will still be shown
