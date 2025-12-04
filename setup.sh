@@ -288,57 +288,70 @@ configure_desktop() {
     fi
 }
 
-configure_proxy() {
-    print_section "Corporate Proxy (Optional)"
+configure_ssl_certificates() {
+    print_section "SSL Inspection Certificates (Optional)"
     
-    echo "Configure if you're behind a corporate proxy (e.g., ZScaler, Netskope)."
+    echo "If your corporate network uses SSL inspection (e.g., ZScaler, Netskope,"
+    echo "Palo Alto), you'll need to install the root CA certificate."
     echo ""
     
-    if prompt_yes_no "Are you behind a corporate proxy?" "n"; then
+    # Check if certificates already exist in config/
+    local existing_certs=$(ls "$SCRIPT_DIR/config/"*.crt 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$existing_certs" -gt 0 ]; then
+        print_info "Found $existing_certs certificate(s) in config/ directory"
+        for cert in "$SCRIPT_DIR/config/"*.crt; do
+            [ -e "$cert" ] && echo "    - $(basename "$cert")"
+        done
+        echo ""
+        if ! prompt_yes_no "Add another certificate?" "n"; then
+            return
+        fi
+    else
+        if ! prompt_yes_no "Do you need to install SSL inspection certificates?" "n"; then
+            return
+        fi
+    fi
+    
+    echo ""
+    echo "You can either:"
+    echo "  1) Specify a path to your certificate file"
+    echo "  2) Manually place it in the config/ directory later"
+    echo ""
+    echo -e "💡 Need help? Check out the ${BOLD}docs/${NC} folder to get assistance on this step."
+    echo ""
+    
+    CERT_PATH=$(prompt_with_default "Certificate path (leave empty to skip)" "")
+    
+    if [ -n "$CERT_PATH" ] && [ -f "$CERT_PATH" ]; then
+        # Copy certificate to config directory
+        local cert_name=$(basename "$CERT_PATH")
+        # Ensure .crt extension
+        if [[ "$cert_name" != *.crt ]]; then
+            cert_name="${cert_name%.*}.crt"
+        fi
+        
+        mkdir -p "$SCRIPT_DIR/config"
+        cp "$CERT_PATH" "$SCRIPT_DIR/config/$cert_name"
+        print_success "Certificate copied to config/$cert_name"
+    elif [ -n "$CERT_PATH" ]; then
+        print_warning "Certificate file not found: $CERT_PATH"
+        print_info "You can manually place it in the config/ directory later"
+    else
+        print_info "No certificate specified. You can add one to config/ later."
+    fi
+}
+
+configure_proxy() {
+    print_section "Corporate Proxy URL (Optional)"
+    
+    echo "Configure if your network requires an explicit proxy URL."
+    echo "(Note: Many SSL inspection setups do NOT require a proxy URL)"
+    echo ""
+    
+    if prompt_yes_no "Do you need to configure a proxy URL?" "n"; then
         echo ""
         HTTP_PROXY=$(prompt_with_default "HTTP Proxy URL (e.g., http://proxy:8080)" "")
         HTTPS_PROXY=$(prompt_with_default "HTTPS Proxy URL (leave empty to use HTTP)" "${HTTP_PROXY}")
-        
-        echo ""
-        echo "If your proxy uses SSL inspection, you'll need a root CA certificate."
-        echo ""
-        
-        # Check if certificates already exist in config/
-        local existing_certs=$(ls "$SCRIPT_DIR/config/"*.crt 2>/dev/null | wc -l | tr -d ' ')
-        if [ "$existing_certs" -gt 0 ]; then
-            print_info "Found $existing_certs certificate(s) in config/ directory"
-            if ! prompt_yes_no "Add another certificate?" "n"; then
-                return
-            fi
-        fi
-        
-        echo ""
-        echo "You can either:"
-        echo "  1) Specify a path to your certificate file"
-        echo "  2) Manually place it in the config/ directory later"
-        echo ""
-        echo -e "💡 Need help? Check out the ${BOLD}docs/${NC} folder to get assistance on this step."
-        echo ""
-        
-        CERT_PATH=$(prompt_with_default "Certificate path (leave empty to skip)" "")
-        
-        if [ -n "$CERT_PATH" ] && [ -f "$CERT_PATH" ]; then
-                # Copy certificate to config directory
-                local cert_name=$(basename "$CERT_PATH")
-                # Ensure .crt extension
-                if [[ "$cert_name" != *.crt ]]; then
-                    cert_name="${cert_name%.*}.crt"
-                fi
-                
-                mkdir -p "$SCRIPT_DIR/config"
-                cp "$CERT_PATH" "$SCRIPT_DIR/config/$cert_name"
-                print_success "Certificate copied to config/$cert_name"
-            elif [ -n "$CERT_PATH" ]; then
-                print_warning "Certificate file not found: $CERT_PATH"
-                print_info "You can manually place it in the config/ directory later"
-            else
-                print_info "No certificate specified. You can add one to config/ later."
-            fi
     else
         HTTP_PROXY=""
         HTTPS_PROXY=""
@@ -446,6 +459,7 @@ main() {
     configure_locale
     configure_provisioning
     configure_desktop
+    configure_ssl_certificates
     configure_proxy
     generate_env_file
     show_summary
