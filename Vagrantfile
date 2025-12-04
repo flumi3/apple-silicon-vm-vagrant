@@ -18,7 +18,20 @@ begin
   require 'dotenv'
   Dotenv.load
 rescue LoadError
-  # dotenv gem not available, continue without it
+  # dotenv gem not available, fall back to a simple .env parser so
+  # environment variables from the project's .env are still loaded.
+  env_file = File.join(File.dirname(__FILE__), '.env')
+  if File.exist?(env_file)
+    File.readlines(env_file).each do |line|
+      line = line.strip
+      next if line.empty? || line.start_with?('#')
+      key, val = line.split('=', 2)
+      next if key.nil? || val.nil?
+      # Remove optional surrounding quotes from value
+      val = val.strip.gsub(/\A["']|["']\z/, '')
+      ENV[key.strip] ||= val
+    end
+  end
 end
 
 # =============================================================================
@@ -35,7 +48,7 @@ USER_TIMEZONE = ENV['USER_TIMEZONE'] || 'Europe/Berlin'
 USER_KEYBOARD = ENV['USER_KEYBOARD'] || 'de'
 USER_LOCALE = ENV['USER_LOCALE'] || 'en_US.UTF-8'
 
-# Provisioning Mode: 'minimal' (fast, ~10 min) or 'full' (all security tools, ~20 min)
+# Provisioning Mode: 'minimal' (fast, ~10 min) or 'full' (all security tools, ~15 min)
 PROVISIONING_MODE = ENV['PROVISIONING_MODE'] || 'minimal'
 
 # Desktop Environment: 'none', 'xfce', 'gnome', or 'kde'
@@ -148,20 +161,21 @@ Vagrant.configure("2") do |config|
     args: [HTTP_PROXY, HTTPS_PROXY],
     privileged: true
 
-  # 2. Package installation (minimal or full based on PROVISIONING_MODE)
+  # 2. Package installation - always run minimal first
+  config.vm.provision "shell",
+    name: "install-packages-minimal",
+    path: "./provision/install-packages-minimal.sh",
+    privileged: true
+
+  # 3. Kali security tools (only in full mode, extends minimal)
   if PROVISIONING_MODE == 'full'
     config.vm.provision "shell",
       name: "install-packages-full",
       path: "./provision/install-packages-full.sh",
       privileged: true
-  else
-    config.vm.provision "shell",
-      name: "install-packages-minimal",
-      path: "./provision/install-packages-minimal.sh",
-      privileged: true
   end
 
-  # 3. System configuration (timezone, keyboard, locale)
+  # 4. System configuration (timezone, keyboard, locale)
   config.vm.provision "shell",
     name: "system-config",
     path: "./provision/system-config.sh",
