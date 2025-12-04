@@ -317,6 +317,8 @@ configure_proxy() {
         echo "  1) Specify a path to your certificate file"
         echo "  2) Manually place it in the config/ directory later"
         echo ""
+        echo -e "💡 Need help? Check out the ${BOLD}docs/${NC} folder to get assistance on this step."
+        echo ""
         
         CERT_PATH=$(prompt_with_default "Certificate path (leave empty to skip)" "")
         
