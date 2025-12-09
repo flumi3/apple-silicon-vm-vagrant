@@ -19,6 +19,8 @@ echo "Timezone set to: $(timedatectl show --property=Timezone --value)"
 
 # Configure locale
 echo "[+] Configuring Locale..."
+# Ensure the locale is enabled in locale.gen before generating
+sed -i "s/^# *${LOCALE}/${LOCALE}/" /etc/locale.gen 2>/dev/null || true
 locale-gen "$LOCALE"
 localectl set-locale LANG="$LOCALE"
 

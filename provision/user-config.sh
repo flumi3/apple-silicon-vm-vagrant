@@ -136,6 +136,25 @@ fi
 # Our custom MOTD in /etc/motd will still be shown
 touch "$USER_HOME/.hushlogin"
 
+# Fix locale settings to prevent issues with macOS SSH clients sending invalid LC_CTYPE=UTF-8
+# This overrides any malformed locale variables sent by the client
+if ! grep -q 'export LC_ALL=' "$USER_HOME/.bashrc" 2>/dev/null; then
+    cat >> "$USER_HOME/.bashrc" << 'EOF'
+
+# Fix locale (override invalid macOS SSH client settings)
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+EOF
+fi
+if ! grep -q 'export LC_ALL=' "$USER_HOME/.zshrc" 2>/dev/null; then
+    cat >> "$USER_HOME/.zshrc" << 'EOF'
+
+# Fix locale (override invalid macOS SSH client settings)
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+EOF
+fi
+
 # Fix ownership of all user files
 chown -R "$DEFAULT_USER":"$DEFAULT_USER" "$USER_HOME"
 

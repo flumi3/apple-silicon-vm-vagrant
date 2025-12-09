@@ -9,7 +9,7 @@ alias la='ls -A'
 alias l='ls -CF'
 alias ..='cd ..'
 alias ...='cd ../..'
-grep() { /usr/bin/grep --color=auto "$@"; }
+alias grep='grep --color=auto'
 
 # Security tool aliases
 alias nmap-quick='nmap -T4 -F'
