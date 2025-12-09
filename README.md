@@ -5,9 +5,9 @@ Want to have Kali-Linux? Sitting behind a corporate proxy with SSL inspection? T
 But wait, there's hope!
 
 This project creates **reproducible Debian-based security/dev VMs** on Apple Silicon Macs using
-[Vagrant](https://developer.hashicorp.com/vagrant) and [UTM](https://mac.getutm.app/).  
-It installs **tools**, configures **shared folders**, sets up **keyboard layouts**, **timezones**, **locales**, and even
-makes the VM work seamlessly behind corporate proxies.
+[Vagrant](https://developer.hashicorp.com/vagrant) and [UTM](https://mac.getutm.app/). It installs **tools**, configures
+**shared folders**, sets up **keyboard layouts**, **timezones**, **locales**, and even makes the VM work seamlessly
+behind corporate proxies.
 
 Jump to the [Quick Start](#quick-start) guide below, or check out the `docs/` folder for more information.
 
