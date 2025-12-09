@@ -1,11 +1,18 @@
 # Configuration
 
-This guide covers all configuration options for your VM, including environment variables, the project directory
-structure, common Vagrant commands, and network/port forwarding setup.
+This guide covers all configuration options for your VM.
 
 ### Content
 
 - [Environment Variables](#environment-variables)
+- [Pre-configured Features](#pre-configured-features)
+- [Customization](#customization)
+  - [Package Lists](#package-lists)
+  - [User Configuration Files](#user-configuration-files)
+  - [System Scripts](#system-scripts)
+- [Common Modification Workflows](#common-modification-workflows)
+- [Testing & Verification](#testing--verification)
+- [When Modifying Scripts](#when-modifying-scripts)
 - [Vagrant Commands](#vagrant-commands)
 
 ## Environment Variables
@@ -25,8 +32,113 @@ You can configure the VM by setting environment variables or using the `.env` fi
 | `HTTP_PROXY`          |                 | HTTP proxy URL                    |
 | `HTTPS_PROXY`         |                 | HTTPS proxy URL                   |
 
-> **Corporate proxy?** See [Handling SSL Inspection & Proxies](ssl_inspection_and_proxies.md) for detailed setup
-> instructions.
+> **Corporate proxy or SSL inspection?** See [Handling SSL Inspection & Proxies](ssl_inspection_and_proxies.md) for
+> detailed setup instructions.
+
+## Pre-configured Features
+
+There are many more things being configured than just the settings you see above:
+
+- Custom aliases are added to `~/.bashrc` and `~/.zshrc` for convenience
+- Vim is pre-configured with sensible defaults in `~/.vimrc`
+- Several utility scripts are added to `~/bin/` and included in your `PATH`
+- A [motd (message of the day)](https://man7.org/linux/man-pages/man5/motd.5.html) is created and displayed on each
+  login with useful system information
+- A firewall is set up and configured using `ufw`
+- SSH is hardened by disabling password authentication and root login
+- Log rotation is configured for various services to prevent disk space issues
+- and much more...
+
+You can adjust all of these configurations by modifying the provisioning scripts in `provision/` or the config files in
+`config/`. See [Customization](#customization) below for details.
+
+## Customization
+
+The `config/` folder contains files that are uploaded to the VM during provisioning. You can modify these to customize
+your VM without touching the provisioning scripts.
+
+### Package Lists
+
+Package lists are located in `config/packages/`. Modify these to add or remove packages:
+
+| File               | Description                                      |
+| ------------------ | ------------------------------------------------ |
+| `essential.txt`    | Core packages installed in both modes            |
+| `full-extras.txt`  | Additional packages for full mode (Docker, etc.) |
+| `kali-tools.txt`   | Security tools from Kali repositories            |
+| `python-tools.txt` | Python security packages                         |
+
+**Format:** One package per line. Lines starting with `#` are comments.
+
+For `python-tools.txt`, use prefixes to specify the installation method:
+
+- `pipx:package` — Installs via pipx (isolated environment, recommended for CLI tools)
+- `pip:package` — Installs via pip (shared environment, for libraries)
+
+### User Configuration Files
+
+Files in `config/scripts/user/` are copied to the user's home directory:
+
+| File         | Destination        | Purpose                        |
+| ------------ | ------------------ | ------------------------------ |
+| `aliases.sh` | `~/.shell_aliases` | Custom shell aliases           |
+| `vimrc`      | `~/.vimrc`         | Vim configuration              |
+| `tmux.conf`  | `~/.tmux.conf`     | Tmux configuration             |
+| `revshell`   | `~/bin/revshell`   | Reverse shell generator script |
+| `serve`      | `~/bin/serve`      | Quick HTTP server script       |
+
+### System Scripts
+
+Scripts in `config/scripts/system/` are installed to `/usr/local/bin/` (available system-wide):
+
+| Script          | Description                           |
+| --------------- | ------------------------------------- |
+| `helpme`        | Shows VM help and available commands  |
+| `sysinfo`       | Displays system information           |
+| `verify-setup`  | Verifies the VM setup is correct      |
+| `backup-config` | Backs up configuration files          |
+| `motd`          | Message of the day displayed on login |
+
+> 💡 **Tip:** After modifying files in `config/`, run `vagrant provision` to apply changes to an existing VM.
+
+## Common Modification Workflows
+
+**Add a CLI tool to both modes:**
+
+1. Edit `config/packages/essential.txt`
+2. Rerun: `vagrant provision --provision-with install-packages-minimal`
+
+**Add a Python security tool for full mode only:**
+
+1. Edit `config/packages/python-tools.txt` with `pipx:name` or `pip:name`
+2. Rerun: `PROVISIONING_MODE=full vagrant provision --provision-with install-packages-full`
+
+**Add a custom shell alias:**
+
+1. Edit `config/scripts/user/aliases.sh`
+2. Rerun: `vagrant provision --provision-with user-config`
+
+**Add a system-wide script (e.g., utility command):**
+
+1. Create script in `config/scripts/system/mycommand` (add shebang, make executable locally)
+2. `final-provision.sh` copies all scripts from `config/scripts/system/` to `/usr/local/bin/`
+3. Rerun: `vagrant provision --provision-with final-provision`
+
+## Testing & Verification
+
+Run inside the VM after provisioning:
+
+- `verify-setup` — Checks tool availability, directory structure, certificates
+- `sysinfo` — System info, provisioning mode, installed tools
+- `helpme` — User-friendly guide with commands and directories
+
+## When Modifying Scripts
+
+1. **Preserve idempotency**: Check before modifying config files (use `grep -q` guards)
+2. **Avoid interactive prompts**: Set `export DEBIAN_FRONTEND=noninteractive` at script start
+3. **Handle stderr/stdout**: Use `>/dev/null 2>&1` for logged output, or prefix with `[+]` for clarity
+4. **Use absolute paths**: `/tmp/scripts/system/`, `/etc/motd`, not relative paths
+5. **Fix permissions**: Scripts in `config/scripts/` need to be executable locally; VM provisioning handles `chmod +x`
 
 ## Vagrant Commands
 

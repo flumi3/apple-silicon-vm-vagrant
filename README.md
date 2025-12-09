@@ -1,19 +1,20 @@
-# Debian (Security) VM for Apple Silicon with Vagrant & UTM
+# Security focused Debian VM for Apple Silicon using Vagrant & UTM
 
-Want to spin up reproducible VMs on your Mac running Apple Silicon (M1/M2/etc.)? Quite the struggle already...  
+Want to spin up reproducible VMs on your Mac running Apple Silicon (M1/M2/etc.)? Tough...  
 Want to have Kali-Linux? Sitting behind a corporate proxy with SSL inspection? This will make you cry - I promise.  
 But wait, there's hope!
 
-Using [Vagrant](https://developer.hashicorp.com/vagrant) and [UTM](https://mac.getutm.app/), this project handles
-everything for you: Creating VMs, installing **tools**, configuring **shared folders**, setting up **keyboard layouts**,
-**timezones**, **locales**, and even making the VM work seamlessly behind corporate proxies.
+This project creates **reproducible Debian-based security/dev VMs** on Apple Silicon Macs using
+[Vagrant](https://developer.hashicorp.com/vagrant) and [UTM](https://mac.getutm.app/).  
+It installs **tools**, configures **shared folders**, sets up **keyboard layouts**, **timezones**, **locales**, and even
+makes the VM work seamlessly behind corporate proxies.
 
 Jump to the [Quick Start](#quick-start) guide below, or check out the `docs/` folder for more information.
 
 ## Features
 
 - 🚀 **Quick Setup**: Interactive CLI wizard (`./setup.sh`) configures everything
-- ⚡ **Flexible Provisioning**: Choose minimal VM (~10 min) or full security/dev toolkit (~20-30 min)
+- ⚡ **Flexible Provisioning**: Choose minimal VM (~10 min) or full security/dev toolkit (~15-20 min)
 - 🔒 **Corporate Proxy Support**: Auto-detects and installs any CA certificates in `config/`
 - 🛠️ **Security Tools**: Installs the most important security tools from Kali repositories
 - 🐳 **Development Ready**: Docker, Python, Node.js
@@ -54,6 +55,8 @@ vagrant up
 ```bash
 vagrant ssh
 ```
+
+> 💡 **Tip:** Run `helpme` inside the VM to see available commands, directory structure, and useful information.
 
 ## Next Steps
 

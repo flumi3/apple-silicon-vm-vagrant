@@ -2,7 +2,7 @@
 
 This guide explains how corporate SSL inspection ("man-in-the-middle" proxies) affects VMs and how this project
 automatically handles certificate installation. If you're behind a corporate proxy using tools like ZScaler or Netskope,
-read this before running `vagrant up`.
+**read this before running `vagrant up`**.
 
 ### Content
 

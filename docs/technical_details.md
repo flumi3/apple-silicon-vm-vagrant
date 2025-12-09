@@ -6,51 +6,111 @@ pure Kali image.
 
 ### Content
 
-- [Provisioning Modes](#provisioning-modes)
-- [Setup Details](#setup-details)
-- [How It Works](#how-it-works)
+- [Provisioning Pipeline](#provisioning-pipeline)
+- [File Organization & Customization Points](#file-organization--customization-points)
 - [Why Vagrant + UTM?](#why-vagrant--utm)
 - [Why not Kali Linux?](#why-not-kali-linux)
 
-## Provisioning Modes
+## Provisioning Pipeline
 
-### Minimal Mode (Default)
+When you run `vagrant up`, the VM goes through **6 sequential stages** to set you up with a ready-to-use Debian-based
+security/development environment (see `Vagrantfile` line ~140+):
 
-Minimal Debian VM with fast provisioning (~10 minutes) and essential tools:
-
-- curl, wget, git, vim, zsh, htop, tmux, openvpn, ...
-- Python 3 with pip/pipx
-- Build essentials (gcc, make, etc.)
-
-### Full Mode
-
-Complete **development & security toolkit** (~20-30 minutes), includes everything in minimal plus:
-
-- **Developer Tools**: Node.js, npm, Docker, docker-compose
-- **Kali Tools**: nmap, sqlmap, john, hydra, wireshark, aircrack-ng, burpsuite, metasploit
-- **Python Security Packages**: impacket, bloodhound, crackmapexec, scapy, pwntools
-- **Wordlists**: rockyou.txt
-
-To use full mode:
-
-```bash
-# During setup, select "full" when prompted
-./setup.sh
-
-# Or set the environment variable
-export PROVISIONING_MODE=full
-vagrant up
-
-# Or upgrade an existing minimal VM
-PROVISIONING_MODE=full vagrant provision
+```mermaid
+flowchart LR
+    S1["1. Certificates & Proxy"] --> S2["2. Packages"] --> S3["3. System Config"] --> S4["4. User Environment"] --> S5["5. Desktop"] --> S6["6. Final Setup"]
 ```
 
-> 💡 **Tip:** Check out `provision/packages/`, `provision/packages-minimal.sh`, and `provision/packages-full.sh` to see
-> how the package installation works and which tools are included.
+1. **configure-proxy.sh** — Auto-detects `config/*.crt` files, installs to system CA store, sets environment variables
+2. **install-packages-minimal.sh** — Core tools (curl, git, vim, zsh, Python, pipx)
+3. **install-packages-full.sh** — (only if `PROVISIONING_MODE=full`) Adds Kali repos with APT pinning, security tools,
+   Docker, wordlists
+4. **system-config.sh** — Timezone, keyboard layout, locale (X11 + console)
+5. **user-config.sh** — Oh My Zsh, shell aliases, utility scripts, directory structure
+6. **install-desktop.sh** — Optional GUI (xfce/gnome/kde) with auto-login
+7. **final-provision.sh** — UFW firewall, SSH hardening, MOTD, system scripts
 
-## Setup Details
+> 📝 **Note**: Each script is uploaded via `Vagrantfile` `config.vm.provision "shell"` and runs as root. User config
+> scripts use `sudo -u vagrant` to run as the vagrant user.
 
-### Installed Packages
+## File Organization & Customization Points
+
+- **`setup.sh`** — Interactive wizard generating `.env` file (idempotent, can rerun)
+- **`Vagrantfile`** — Main orchestration. Loads `.env`, uploads all `config/**` files to `/tmp/`, defines provisioners
+- **`config/packages/*.txt`** — Package lists (one per line, `#` for comments). Edit to add/remove tools:
+  - `essential.txt` — Both modes
+  - `full-extras.txt` — Only full mode (Docker, Node.js)
+  - `kali-tools.txt` — Individual packages from Kali repos (not metapackages to avoid conflicts)
+  - `python-tools.txt` — Format: `pipx:package` (isolated) or `pip:package` (shared)
+- **`config/scripts/`** — User/system shell scripts & configs copied to VM
+- **`provision/`** — Shell provisioning scripts (6 stages)
+
+## Why Vagrant + UTM?
+
+Running VMs on Apple Silicon Macs is tricky. VirtualBox doesn't support ARM64, VMware Fusion has limited ARM support,
+and Parallels is paid software.
+
+**The solution:** [UTM](https://mac.getutm.app/) is a free, open-source virtualization app built specifically for
+macOS - and it works great on Apple Silicon. It uses QEMU under the hood but provides a native and very fast macOS
+experience.
+
+[Vagrant](https://www.vagrantup.com/) adds the "Infrastructure as Code" layer on top. Instead of manually clicking
+through UTM's UI to create VMs, you define everything in a `Vagrantfile`. This means:
+
+- **Reproducible**: Run `vagrant up` and get the exact same VM every time
+- **Shareable**: Commit the config to Git, share with your team
+- **Automated**: No manual setup - provisioning scripts handle everything
+
+The [`vagrant_utm`](https://github.com/naveenrajm7/vagrant_utm) plugin bridges Vagrant and UTM, letting you use familiar
+Vagrant commands (`vagrant up`, `vagrant ssh`, `vagrant destroy`) with UTM as the backend.
+
+## Why not Kali Linux?
+
+As this project lets you create a security VM very similar to Kali, you might wonder: "Why not just use a Kali Linux
+image directly?"
+
+**The short answer:** There's no official Kali Linux Vagrant box for ARM64/UTM.
+
+**The longer answer:** This project takes a hybrid approach that's more stable than pure Kali:
+
+1. **Base image**: We use **Debian 12** (`utm/bookworm`) - a stable, well-tested ARM64 image built for UTM
+2. **Kali repositories**: We add the official Kali repos as a secondary package source
+3. **APT pinning**: We set Kali packages to Priority 100, meaning:
+   - Debian packages are always preferred (better stability)
+   - Kali packages are only used for security tools not available on Debian
+
+This gives you the best of both worlds: Debian's solid stability for the base system, plus access to Kali's security
+tools when you need them. It's also more resilient in corporate environments where `kali.org` domains might be blocked.
+The VM still works, you just won't have the security tools until you get the repos whitelisted (or install them
+manually).
+
+## Key Technical Patterns
+
+### Idempotency & Re-provisioning
+
+Scripts check for existing state before modifying (e.g., `[[ ! grep -q "string" file ]]`). Safe to rerun
+`vagrant provision` or specific provisioners.
+
+### Kali Repository Setup & Fallbacks
+
+`install-packages-full.sh` tries multiple Kali mirrors (RWTH Aachen, Karneval, Umeå, official) and falls back to bundled
+keyring (`config/kali-archive-keyring.gpg`) if downloads fail. No internet = no blocking.
+
+### Corporate Proxy & SSL Inspection
+
+`configure-proxy.sh`:
+
+- Auto-detects all `config/*.crt` files and installs to `/usr/local/share/ca-certificates/`
+- Sets environment variables (`REQUESTS_CA_BUNDLE`, `SSL_CERT_FILE`, `NODE_EXTRA_CA_CERTS`, `CURL_CA_BUNDLE`)
+- Configures pip/npm to use system CA bundle
+- **Note**: Vagrant itself needs host's cacert.pem updated _before_ `vagrant up` (documented in
+  `docs/ssl_inspection_and_proxies.md`)
+
+### Provisioning Modes
+
+- **minimal** (~10 min): Essential CLI tools only
+- **full** (~15-20 min): Adds Kali tools, Docker, Python security packages, wordlists
+- **Runtime detection**: `install-packages-full.sh` writes mode to `/etc/vm-provision-mode` for scripts to check
 
 ### Desktop Environments
 
@@ -86,92 +146,13 @@ The following ports are forwarded from the VM to your host:
 | 4444       | 4444      | Metasploit / Reverse shells |
 | 8000       | 8000      | HTTP server                 |
 
-## How It Works
+### Firewall & SSH Hardening
 
-When you run `vagrant up`, the VM goes through a **6-stage provisioning pipeline** to set you up with a ready-to-use
-Debian-based security/development environment.
+`final-provision.sh` configures UFW:
 
-```mermaid
-flowchart LR
-    S1["1. Certificates & Proxy"] --> S2["2. Packages"] --> S3["3. System Config"] --> S4["4. User Environment"] --> S5["5. Desktop"] --> S6["6. Final Setup"]
-```
-
-### Stage Breakdown
-
-1. **Certificates & Proxy** (`configure-proxy.sh`)
-
-   - Detects any `.crt` files in `config/`
-   - Installs certificates to `/usr/local/share/ca-certificates/`
-   - Configures proxy environment variables for all tools
-
-2. **Packages** (`install-packages-minimal.sh` or `install-packages-full.sh`)
-
-   - Updates the system and installs tools
-   - Minimal mode: essential CLI tools only
-   - Full mode: adds Kali repositories, security, and dev tools
-   - See `provision/packages/` for package lists
-
-3. **System Config** (`system-config.sh`)
-
-   - Sets timezone, keyboard layout, and locale
-   - Configures system-level preferences
-
-4. **User Environment** (`user-config.sh`)
-
-   - Installs Oh My Zsh with plugins
-   - Creates directory structure (`~/projects`, `~/tools`, etc.)
-   - Adds shell aliases and helper scripts
-   - Utilizes files from `provision/user/` for customization
-
-5. **Desktop Environment** (`install-desktop.sh`)
-
-   - Installs selected desktop environment (if not `none`)
-   - Configures display manager and auto-login
-
-6. **Final Setup** (`final-provision.sh`)
-   - Configures UFW firewall rules
-   - Hardens SSH configuration
-   - Runs verification checks
-   - Utilizes files from `provision/final/` for final tweaks
-
-## Why Vagrant + UTM?
-
-Running VMs on Apple Silicon Macs is tricky. VirtualBox doesn't support ARM64, VMware Fusion has limited ARM support,
-and Parallels is paid software.
-
-**The solution:** [UTM](https://mac.getutm.app/) is a free, open-source virtualization app built specifically for
-macOS - and it works great on Apple Silicon. It uses QEMU under the hood but provides a native and very fast macOS
-experience.
-
-[Vagrant](https://www.vagrantup.com/) adds the "Infrastructure as Code" layer on top. Instead of manually clicking
-through UTM's UI to create VMs, you define everything in a `Vagrantfile`. This means:
-
-- **Reproducible**: Run `vagrant up` and get the exact same VM every time
-- **Shareable**: Commit the config to Git, share with your team
-- **Automated**: No manual setup - provisioning scripts handle everything
-
-The [`vagrant_utm`](https://github.com/naveenrajm7/vagrant_utm) plugin bridges Vagrant and UTM, letting you use familiar
-Vagrant commands (`vagrant up`, `vagrant ssh`, `vagrant destroy`) with UTM as the backend.
-
-## Why not Kali Linux?
-
-As this project lets you create a security VM very similar to Kali, you might wonder: "Why not just use a Kali Linux
-image directly?"
-
-**The short answer:** There's no official Kali Linux Vagrant box for ARM64/UTM.
-
-**The longer answer:** This project takes a hybrid approach that's actually _better_ than pure Kali:
-
-1. **Base image**: We use **Debian 12** (`utm/bookworm`) - a stable, well-tested ARM64 image built for UTM
-2. **Kali repositories**: We add the official Kali repos as a secondary package source
-3. **APT pinning**: We set Kali packages to Priority 100, meaning:
-   - Debian packages are always preferred (better stability)
-   - Kali packages are only used for security tools not available on Debian
-
-This gives you the best of both worlds: Debian's solid stability for the base system, plus access to Kali's security
-tools when you need them. It's also more resilient in corporate environments where `kali.org` domains might be blocked.
-The VM still works, you just won't have the security tools until you get the repos whitelisted (or install them
-manually).
+- Default deny incoming, allow outgoing
+- Allow SSH, 8080, 4444, 8000
+- Disables root login, requires public key auth (but password auth still enabled for vagrant user)
 
 ## See Also
 
